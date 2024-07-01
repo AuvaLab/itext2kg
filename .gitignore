@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 # Notebooks
-#notebooks/
+examples/
 # C extensions
 *.so
 
