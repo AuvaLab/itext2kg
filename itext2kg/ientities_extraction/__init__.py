@@ -1,1 +1,1 @@
-from .ientities_extraction import iEntitiesExtractor
+from .ientities_extractor import iEntitiesExtractor

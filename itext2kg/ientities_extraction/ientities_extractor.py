@@ -1,11 +1,5 @@
-from langchain_openai import ChatOpenAI
-from typing import List, Dict, Tuple, Union
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
+from typing import List
 from ..utils import LangchainOutputParser, EntitiesExtractor
-import openai
-import time 
-from openai import OpenAI
 from ..utils import Matcher
 
 class iEntitiesExtractor():
