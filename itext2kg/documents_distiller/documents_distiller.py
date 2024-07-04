@@ -1,5 +1,5 @@
 from typing import List
-from ..llm_output_parser import LangchainOutputParser
+from ..utils import LangchainOutputParser
 from .documents_distiller_interface import DocumentsDistillerInterface
 from langchain_openai import ChatOpenAI
 
@@ -7,8 +7,7 @@ from langchain_openai import ChatOpenAI
 class DocumentsDisiller(DocumentsDistillerInterface):
     def __init__(self, openai_api_key:str, model_name:str = "gpt-4-0125-preview", temperature:str=0) -> None:
         self.temperature = temperature
-        self.model = ChatOpenAI(api_key=openai_api_key, model_name= model_name, temperature=0)
-        self.langchain_output_parser = LangchainOutputParser(model=self.model)
+        self.langchain_output_parser = LangchainOutputParser(openai_api_key=openai_api_key, model_name=model_name, temperature=temperature)
     
     @staticmethod
     def __combine_dicts(dict_list:List[dict]):

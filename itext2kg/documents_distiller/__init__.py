@@ -1,2 +1,2 @@
 from .documents_distiller import DocumentsDisiller
-from .schemas import *
+from ..utils.schemas import *
