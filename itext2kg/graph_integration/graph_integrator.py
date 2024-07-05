@@ -2,7 +2,7 @@ from neo4j import GraphDatabase
 import numpy as np
 from typing import List
 
-class GraphConstructor:
+class GraphIntegrator:
     def __init__(self, uri: str, username: str, password: str):
         self.uri = uri
         self.username = username
@@ -38,7 +38,7 @@ class GraphConstructor:
             properties = []
             for prop, value in node["properties"].items():
                 if prop == "embeddings":
-                    value = GraphConstructor.transform_embeddings_to_str_list(value)
+                    value = GraphIntegrator.transform_embeddings_to_str_list(value)
                 properties.append(f'SET n.{prop.replace(" ", "_")} = "{value}"')
 
             query = f'CREATE (n:{node["label"]} {{name: "{node["name"]}"}}) ' + ' '.join(properties)
@@ -49,7 +49,7 @@ class GraphConstructor:
         rels = []
         for rel in json_graph["relationships"]:
             property_statements = ' '.join(
-            [f'SET r.{key.replace(" ", "_")} = "{value}"' if key != "embeddings" else f'SET r.{key.replace(" ", "_")} = "{GraphConstructor.transform_embeddings_to_str_list(value)}"' for key, value in rel.get("properties", {}).items()]
+            [f'SET r.{key.replace(" ", "_")} = "{value}"' if key != "embeddings" else f'SET r.{key.replace(" ", "_")} = "{GraphIntegrator.transform_embeddings_to_str_list(value)}"' for key, value in rel.get("properties", {}).items()]
             )
             
             query = (f'MATCH (n {{name: "{rel["startNode"]}"}}), (m {{name: "{rel["endNode"]}"}}) '
@@ -58,7 +58,8 @@ class GraphConstructor:
             
         return rels
     
-    def build_graph(self, json_graph:dict) -> None:
+
+    def visualize_graph(self, json_graph:dict) -> None:
         self.connect()
 
         nodes, relationships = (
