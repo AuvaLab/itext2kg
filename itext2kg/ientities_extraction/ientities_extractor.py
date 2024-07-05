@@ -38,16 +38,6 @@ class iEntitiesExtractor():
         
         return list(map(lambda word : self.__add_embeddings_as_property(entity = word, embeddings=embeddings, property_name=property_name, entity_name_name=entity_name_name) , entities["entities"]))
     
-    def extract_entities_for_all_sections(self, sections:List[str], ent_threshold = 0.8):
-        matcher = Matcher(threshold = ent_threshold)      
-        print("[INFO] Extracting Entities from the Document ", 1)
-        global_entities = self.extract_entities(context=sections[0])
-        
-        for i in range(1, len(sections)):
-            print("[INFO] Extracting Entities from the Document ", i+1)
-            entities = self.extract_entities(context= sections[i])
-            processed_entities, global_entities =  matcher.process_lists(list1 = entities, list2=global_entities, for_entity_or_relation="entity")
-        return global_entities
 
         
     

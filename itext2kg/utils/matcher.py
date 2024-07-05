@@ -6,14 +6,10 @@ class Matcher:
     """
     Class to handle the matching and processing of entities or relations based on cosine similarity or name matching.
     """
-    def __init__(self, threshold: float = 0.8):
-        """
-        Initialize the Matcher with a similarity threshold.
-        :param threshold: The cosine similarity threshold to consider a match.
-        """
-        self.threshold = threshold
-
-    def find_match(self, obj1: Dict, list_objects: List[Dict], match_type: Literal['entity', 'relation']) -> Dict:
+    def __init__(self):
+        pass
+    
+    def find_match(self, obj1: Dict, list_objects: List[Dict], match_type: Literal['entity', 'relation'], threshold: float = 0.8) -> Dict:
         """
         Find a matching object based on name or high cosine similarity.
         :param obj1: The object to find matches for.
@@ -24,7 +20,7 @@ class Matcher:
         name1 = obj1['name']
         emb1 = np.array(obj1['properties']['embeddings']).reshape(1, -1)
         best_match = None
-        best_cosine_sim = self.threshold
+        best_cosine_sim = threshold
 
         for obj2 in list_objects:
             name2 = obj2['name']
@@ -64,7 +60,7 @@ class Matcher:
 
         return union_list
 
-    def process_lists(self, list1: List[Dict], list2: List[Dict], for_entity_or_relation: Literal['entity', 'relation']) -> Tuple[List[Dict], List[Dict]]:
+    def process_lists(self, list1: List[Dict], list2: List[Dict], for_entity_or_relation: Literal['entity', 'relation'], threshold: float = 0.8) -> Tuple[List[Dict], List[Dict]]:
         """
         Process two lists to generate new lists based on specified conditions.
         :param list1: First list to process.
@@ -72,7 +68,7 @@ class Matcher:
         :param for_entity_or_relation: Specifies whether the processing is for entities or relations.
         :return: Two processed lists.
         """
-        list3 = [self.find_match(obj1, list2, for_entity_or_relation) for obj1 in list1]
+        list3 = [self.find_match(obj1, list2, for_entity_or_relation, threshold=threshold) for obj1 in list1]
         list4 = self.create_union_list(list3, list2)
         return list3, list4
 
