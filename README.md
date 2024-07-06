@@ -69,8 +69,7 @@ class Article(BaseModel):
 ```
 
 ### The ```iText2KG```
-
-This version is when you want to extract
+The iText2KG module is the core component of the package, responsible for integrating various functionalities to construct the knowledge graph. It uses the distilled semantic sections from documents to extract entities and relationships, and then builds the knowledge graph incrementally. 
 
 ```python
 # Initialize iText2KG with the OpenAI API key.
@@ -84,10 +83,41 @@ global_ent, global_rel = itext2kg.build_graph(sections=semantic_blocks)
 
 ```
 
+The Arguments of ```iText2KG```:
+- `openai_api_key` (str): The API key for accessing OpenAI services. This key is used to authenticate and make requests to OpenAI's language models for entity and relation extraction.
 
+- `embeddings_model_name` (str, optional): The name of the embeddings model to be used for generating text embeddings. Default is `"text-embedding-3-large"`.
+
+- `model_name` (str, optional): The name of the language model to be used for entity and relation extraction. Default is `"gpt-4-turbo"`.
+
+- `temperature` (float, optional): The temperature setting for the language model, controlling the randomness of the output. Default is `0`.
+
+- `sleep_time` (int, optional): The sleep time between API requests to avoid rate limiting. Default is `5` seconds.
+
+
+
+## The ```GraphIntegrator```
+It integrates the extracted entities and relationships into a Neo4j graph database and provides a visualization of the knowledge graph. This module allows users to easily explore and analyze the structured data using Neo4j's graph capabilities.
+
+```python
+from itext2kg.graph_integration import GraphIntegrator
+
+URI = "bolt://localhost:####"
+USERNAME = "####"
+PASSWORD = "####"
+
+
+new_graph = {}
+new_graph["nodes"] = global_ent
+new_graph["relationships"] = global_rel
+
+GraphIntegrator(uri=URI, username=USERNAME, password=PASSWORD).visualize_graph(json_graph=new_graph)
+```
+
+## Public Collaboration
+We welcome contributions from the community to improve iText2KG.
 
 ## Citation
-
 ```md
 @inproceedings{Lairgi2024,
   author    = {Yassir Lairgi and
