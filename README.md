@@ -10,6 +10,22 @@ To install iText2KG, ensure you have Python installed, then use pip to install
 ```bash
 pip install itext2kg
 ```
+## The Overall Architecture
+
+The ```iText2KG``` package consists of four main modules that work together to construct and visualize knowledge graphs from unstructured text. An overview of the overall architecture:
+
+1. **Document Distiller**: This module processes raw documents and reformulates them into semantic blocks based on a user-defined schema. It improves the signal-to-noise ratio by focusing on relevant information and structuring it in a predefined format.
+
+2. **Incremental Entity Extractor**: This module extracts unique entities from the semantic blocks and resolves ambiguities to ensure each entity is clearly defined. It uses cosine similarity measures to match local entities with global entities.
+
+3. **Incremental Relation Extractor**: This module identifies relationships between the extracted entities. It can operate in two modes: using global entities to enrich the graph with potential information or using local entities for more precise relationships.
+
+4. **Graph Integrator and Visualization**: This module integrates the extracted entities and relationships into a Neo4j database, providing a visual representation of the knowledge graph. It allows for interactive exploration and analysis of the structured data.
+
+Each module performs a distinct role in the pipeline, from initial document processing to final graph visualization, ensuring that the knowledge graph is accurate, comprehensive, and easy to analyze.
+
+![itext2kg](./docs/itext2kg.png)
+
 
 ## Modules and Examples
 
