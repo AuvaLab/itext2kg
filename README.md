@@ -130,6 +130,9 @@ new_graph["relationships"] = global_rel
 GraphIntegrator(uri=URI, username=USERNAME, password=PASSWORD).visualize_graph(json_graph=new_graph)
 ```
 
+## Some ```iText2KG``` use-cases
+![text2kg](./docs/text_2_kg.png)
+
 ## Public Collaboration
 We welcome contributions from the community to improve iText2KG.
 
