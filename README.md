@@ -135,17 +135,3 @@ GraphIntegrator(uri=URI, username=USERNAME, password=PASSWORD).visualize_graph(j
 
 ## Public Collaboration
 We welcome contributions from the community to improve iText2KG.
-
-## Citation
-```md
-@inproceedings{Lairgi2024,
-  author    = {Yassir Lairgi and
-               Ludovic Moncla and
-               R{\'{e}}my Cazabet and
-               Khalid Benabdeslem and
-               Pierre Cl{\'{e}}au},
-  title     = {iText2KG: Incremental Knowledge Graphs Construction Using Large Language Models},
-  booktitle = {WISE Conference},
-  year      = {2024},
-}
-```
