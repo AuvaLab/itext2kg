@@ -35,12 +35,12 @@ class iText2KG:
 
         
     def extract_relations_for_all_sections(self, sections:List[str], entities, rel_threshold = 0.8):
-        print("[INFO] Extracting Entities from the Document", 1)
+        print("[INFO] Extracting Relations from the Document", 1)
         
         global_relationships = self.irelations_extractor.extract_relations(context=sections[0], entities = entities)
         
         for i in range(1, len(sections)):
-            print("[INFO] Extracting Entities from the Document", i+1)
+            print("[INFO] Extracting Relations from the Document", i+1)
             entities = self.irelations_extractor.extract_relations(context= sections[i], entities=entities)
             processed_relationships, global_relationships_ = self.matcher.process_lists(list1 = entities, list2=global_relationships, for_entity_or_relation="relation", threshold = rel_threshold)
             
