@@ -22,10 +22,7 @@ The ```iText2KG``` package consists of four main modules that work together to c
 
 4. **Graph Integrator and Visualization**: This module integrates the extracted entities and relationships into a Neo4j database, providing a visual representation of the knowledge graph. It allows for interactive exploration and analysis of the structured data.
 
-Each module performs a distinct role in the pipeline, from initial document processing to final graph visualization, ensuring that the knowledge graph is accurate, comprehensive, and easy to analyze.
-
 ![itext2kg](./docs/itext2kg.png)
-
 
 ## Modules and Examples
 
