@@ -1,0 +1,45 @@
+name : testing matcher algorithm
+on:
+    pull_request:
+    push:
+      branches:
+        - main
+jobs:
+    test:
+      runs-on: ubuntu-latest
+      timeout-minutes: 10
+  
+      steps:
+        - name: Check out the code
+          uses: actions/checkout@v4
+  
+        - name: Setup Python
+          uses: actions/setup-python@v5
+          id: setup-python
+          with:
+            python-version: "3.11"
+  
+        - name: Cache uv folder
+          id: cache-uv
+          uses: actions/cache@v4
+          with:
+            path: ~/.cache/uv
+            key: ${{ runner.os }}-python-${{ steps.setup-python.outputs.python-version }}-uv-${{ hashFiles('requirements.txt') }}
+  
+        - name: Install uv
+          run: curl -LsSf https://astral.sh/uv/install.sh | sh
+  
+        - name: Install dependencies
+          run: uv pip install --system -r requirements.txt
+  
+        - name: Cache .pytest_cache folder
+          id: pytest_cache
+          uses: actions/cache@v4
+          with:
+            path: .pytest_cache
+            key: pytest_cache-${{ github.head_ref }}
+  
+        # We avoid triggering tests which use credits on every push
+        - name: Run unit tests
+          run: python -m pytest ./tests/testing_matcher.py
+  
