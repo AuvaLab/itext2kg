@@ -89,7 +89,7 @@ The iText2KG module is the core component of the package, responsible for integr
 itext2kg = iText2KG(openai_api_key=OPENAI_API_KEY)
 
 # Format the distilled document into semantic sections.
-semantic_blocks = [f"{key} - {value}".replace("{", "[").replace("}", "]") for key, value in distilled_doc]
+semantic_blocks = [f"{key} - {value}".replace("{", "[").replace("}", "]") for key, value in distilled_doc.items()]
 
 # Build the knowledge graph using the semantic sections.
 global_ent, global_rel = itext2kg.build_graph(sections=semantic_blocks)
