@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, List
 
 class DataHandler:
     def __init__(self):
@@ -38,3 +38,12 @@ class DataHandler:
         processed_data = [self.process(item, data_type=data_type) for item in data]
         unique_data = self.remove_duplicates(records=processed_data, data_type=data_type)
         return unique_data
+    
+    def find_relations_with_isolated_entities(self, global_entities:List[dict], relations:List[dict]):
+        isolated_entities = relations.copy()
+        for rel in relations:
+            if rel["startNode"] in global_entities and rel["endNode"] in global_entities:
+                isolated_entities.remove(rel)
+        return isolated_entities
+    
+    
