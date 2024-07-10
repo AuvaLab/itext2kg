@@ -31,20 +31,32 @@ class iText2KG:
             print("[INFO] Extracting Entities from the Document", i+1)
             entities = self.ientities_extractor.extract_entities(context= sections[i])
             processed_entities, global_entities =  self.matcher.process_lists(list1 = entities, list2=global_entities, for_entity_or_relation="entity", threshold=ent_threshold)
-        return global_entities
+        return self.data_handler.handle_data(global_entities, data_type="entity")
 
         
     def extract_relations_for_all_sections(self, sections:List[str], entities, rel_threshold = 0.8):
+        entities = list(map(lambda entity:entity["name"], entities.copy()))
         print("[INFO] Extracting Relations from the Document", 1)
         
         global_relationships = self.irelations_extractor.extract_relations(context=sections[0], entities = entities)
         
+        relations_with_isolated_entities = self.data_handler.find_relations_with_isolated_entities(global_entities=entities, relations=global_relationships)
+        if relations_with_isolated_entities:
+            corrected_relations = self.irelations_extractor.extract_relations_for_isolated_entities(context=sections[0], entities=entities, relations_with_isolated_entities=relations_with_isolated_entities)
+            global_relationships = [rel for rel in global_relationships if rel not in relations_with_isolated_entities] + [corrected_relations]
+            
         for i in range(1, len(sections)):
             print("[INFO] Extracting Relations from the Document", i+1)
             entities = self.irelations_extractor.extract_relations(context= sections[i], entities=entities)
             processed_relationships, global_relationships_ = self.matcher.process_lists(list1 = entities, list2=global_relationships, for_entity_or_relation="relation", threshold = rel_threshold)
             
+            relations_with_isolated_entities = self.data_handler.find_relations_with_isolated_entities(global_entities=entities, relations=processed_relationships)
+            if relations_with_isolated_entities:
+                corrected_relations = self.irelations_extractor.extract_relations_for_isolated_entities(context=sections[i], entities=entities, relations_with_isolated_entities=relations_with_isolated_entities)
+                processed_relationships = [rel for rel in processed_relationships if rel not in relations_with_isolated_entities] + [corrected_relations]
+
             global_relationships.extend(processed_relationships)
+        #return self.data_handler.handle_data(global_relationships, data_type="relation")
         return global_relationships
 
 
