@@ -26,7 +26,7 @@ The ```iText2KG``` package consists of four main modules that work together to c
 
 The LLM is prompted to extract entities representing one unique concept to avoid semantically mixed entities. The following figure presents the entity and relation extraction prompts using the Langchain JSON Parser. They are categorized as follows: Blue - prompts automatically formatted by Langchain; Regular - prompts we have designed; and Italic - specifically designed prompts for entity and relation extraction. (a) prompts for relation extraction and (b) prompts for entity extraction.
 
-![prompts](./docs/prompts.png)
+![prompts](./docs/prompts_.png)
 
 ## Modules and Examples
 
