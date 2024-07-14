@@ -133,7 +133,13 @@ GraphIntegrator(uri=URI, username=USERNAME, password=PASSWORD).visualize_graph(j
 ```
 
 ## Some ```iText2KG``` use-cases
+
+In the figure below, we have constructed a KG for the article [seasonal](./datasets/scientific_articles/seasonal.pdf) and for the company [company](https://auvalie.com/), with its permission to publish it publicly. Additionally, the Curriculum Vitae (CV) KG is based on the following generated [CV](./datasets/cvs/CV_Emily_Davis.pdf).
+
 ![text2kg](./docs/text_2_kg.png)
+
+## Dataset
+The dataset consists of five generated CVs using GPT-4, five randomly selected scientific articles representing various domains of study with diverse structures, and five company websites from different industries of varying sizes. Additionally, we have included distilled versions of the CVs and scientific articles based on predefined schemas.
 
 ## Public Collaboration
 We welcome contributions from the community to improve iText2KG.
