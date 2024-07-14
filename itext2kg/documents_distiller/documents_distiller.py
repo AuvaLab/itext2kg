@@ -1,10 +1,8 @@
 from typing import List
 from ..utils import LangchainOutputParser
-from .documents_distiller_interface import DocumentsDistillerInterface
-from langchain_openai import ChatOpenAI
 
 
-class DocumentsDisiller(DocumentsDistillerInterface):
+class DocumentsDisiller:
     def __init__(self, openai_api_key:str, model_name:str = "gpt-4-0125-preview", temperature:str=0) -> None:
         self.temperature = temperature
         self.langchain_output_parser = LangchainOutputParser(openai_api_key=openai_api_key, model_name=model_name, temperature=temperature)
