@@ -38,6 +38,8 @@ class Matcher:
             if match_type == 'relation':
                 print(f"[INFO] Wohoo ! Relation using embeddings is matched --- {obj1['name']} -merged--> {best_match['name']} ")
                 obj1['name'] = best_match['name']
+                obj1['properties']['embeddings'] = best_match['properties']['embeddings']
+                
             elif match_type == 'entity':
                 print(f"[INFO] Wohoo ! Entity using embeddings is matched --- {obj1['name']} -merged--> {best_match['name']} ")
                 return best_match

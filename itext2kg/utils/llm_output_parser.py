@@ -1,24 +1,45 @@
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.exceptions import OutputParserException
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 import time
 import openai
-from openai import OpenAI
-from .llm_output_parser_interface import LLMOutputParser
 from typing import Union, List
-from langchain_openai import OpenAIEmbeddings
-from langchain_openai import ChatOpenAI
 import numpy as np
 
-class LangchainOutputParser(LLMOutputParser):
-    def __init__(self, openai_api_key:str, embeddings_model_name :str = "text-embedding-3-large", model_name:str = "gpt-4-turbo", temperature:float = 0, sleep_time:int=5) -> None:
+class LangchainOutputParser:
+    """
+    A parser class for extracting and embedding information using Langchain and OpenAI APIs.
+    """
+    
+    def __init__(self, openai_api_key: str, embeddings_model_name: str = "text-embedding-3-large", model_name: str = "gpt-4-turbo", temperature: float = 0, sleep_time: int = 5) -> None:
+        """
+        Initialize the LangchainOutputParser with specified API key, models, and operational parameters.
+        
+        Args:
+        openai_api_key (str): The API key for accessing OpenAI services.
+        embeddings_model_name (str): The model name for text embeddings.
+        model_name (str): The model name for the Chat API.
+        temperature (float): The temperature setting for the Chat API's responses.
+        sleep_time (int): The time to wait (in seconds) when encountering rate limits or errors.
+        """
         self.model = ChatOpenAI(api_key=openai_api_key, model_name=model_name, temperature=temperature)
         self.sleep_time = sleep_time
-        self.embeddings_model = OpenAIEmbeddings(model = embeddings_model_name, api_key=openai_api_key)
+        self.embeddings_model = OpenAIEmbeddings(model=embeddings_model_name, api_key=openai_api_key)
+
+    def calculate_embeddings(self, text: Union[str, List[str]]) -> np.ndarray:
+        """
+        Calculate embeddings for the given text using the initialized embeddings model.
         
+        Args:
+        text (Union[str, List[str]]): The text or list of texts to embed.
         
-    def calculate_embeddings(self, text:Union[str, List[str]]):
+        Returns:
+        np.ndarray: The calculated embeddings as a NumPy array.
+        
+        Raises:
+        TypeError: If the input text is neither a string nor a list of strings.
+        """
         if isinstance(text, list):
             return np.array(self.embeddings_model.embed_documents(text))
         elif isinstance(text, str):
@@ -26,7 +47,6 @@ class LangchainOutputParser(LLMOutputParser):
         else:
             raise TypeError("Invalid text type, please provide a string or a list of strings.")
 
-            
     def extract_information_as_json_for_context(
         self,
         output_data_structure,
@@ -36,13 +56,24 @@ class LangchainOutputParser(LLMOutputParser):
         - Act like an experienced information extractor. 
         - You have a chunk of a company website.
         - If you do not find the right information, keep its place empty.
-        '''    
+        '''
         ):
-        # The role of IE_query is to prompt a language model to populate the data structure.
-
-        # Set up a parser + inject instructions into the prompt template.
+        """
+        Extract information from a given context and format it as JSON using a specified structure.
+        
+        Args:
+        output_data_structure: The data structure definition for formatting the JSON output.
+        context (str): The context from which to extract information.
+        IE_query (str): The query to provide to the language model for extracting information.
+        
+        Returns:
+        The structured JSON output based on the provided data structure and extracted information.
+        
+        Note: Handles rate limit and bad request errors by waiting and retrying.
+        """
+        # Set up a parser and inject instructions into the prompt template.
         parser = JsonOutputParser(pydantic_object=output_data_structure)
-
+        
         template = f"""
         Context: {context}
 
@@ -60,18 +91,14 @@ class LangchainOutputParser(LLMOutputParser):
         try:
             return chain.invoke({"query": IE_query})
         except openai.BadRequestError as e:
-            print(
-                f"Too much requests, we are sleeping! \n the error is {e}"
-            )
+            print(f"Too much requests, we are sleeping! \n the error is {e}")
             time.sleep(self.sleep_time)
-            self.extract_information_as_json_for_context(context=context)
+            return self.extract_information_as_json_for_context(context=context)
 
         except openai.RateLimitError:
-            print(
-                "Too much requests exceeding rate limit, we are sleeping!"
-            )
+            print("Too much requests exceeding rate limit, we are sleeping!")
             time.sleep(self.sleep_time)
-            self.extract_information_as_json_for_context(context=context)
+            return self.extract_information_as_json_for_context(context=context)
             
         except OutputParserException:
             print(f"Error in parsing the instance {context}")
