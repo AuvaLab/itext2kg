@@ -6,7 +6,6 @@ on:
 
 jobs:
   deploy:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -14,16 +13,20 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.x'
-    - name: Install dependencies
+        python-version: '3.x'  
+
+    - name: Install build dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel twine
-    - name: Build and publish
+        pip install build twine
+
+    - name: Build the package
+      run: |
+        python -m build
+
+    - name: Publish the package
       env:
         TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{secrets.PYPI_API_KEY}}
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_KEY }}
       run: |
-        git fetch --all --tags
-        python setup.py sdist bdist_wheel
         twine upload dist/*
