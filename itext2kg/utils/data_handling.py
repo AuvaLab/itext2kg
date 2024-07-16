@@ -115,14 +115,12 @@ class DataHandler:
             if rel["startNode"] not in global_entities_names:
                 # Calculate embeddings for the isolated start node and find the closest match.
                 node = {"name": rel["startNode"], "label": "entity", "properties": {"embeddings": embedding_calculator(rel["startNode"])}}
-                print(node)
                 closest_node = matcher(node)
                 rel["startNode"] = closest_node["name"]
 
             if rel["endNode"] not in global_entities_names:
                 # Repeat the matching process for the isolated end node.
                 node = {"name": rel["endNode"], "label": "entity", "properties": {"embeddings": embedding_calculator(rel["endNode"])}}
-                print(node)
                 closest_node = matcher(node)
                 rel["endNode"] = closest_node["name"]
 
