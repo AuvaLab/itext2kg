@@ -29,6 +29,7 @@ The LLM is prompted to extract entities representing one unique concept to avoid
 ![prompts](./docs/prompts_.png)
 
 ## Modules and Examples
+All the examples are provided in the following jupyter notebook [example](./examples/examples_of_use.ipynb).
 
 The Document Distiller module reformulates raw documents into predefined and semantic blocks using LLMs. It utilizes a schema to guide the extraction of specific information from each document.
 
