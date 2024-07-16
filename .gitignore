@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 # Notebooks
-examples/
+examples/itext2kg.ipynb
 # C extensions
 *.so
 
