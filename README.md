@@ -1,8 +1,24 @@
 # iText2KG: Incremental Knowledge Graphs Construction Using Large Language Models
 
+[![Paper](https://img.shields.io/badge/Paper-View-green?style=flat&logo=adobeacrobatreader)]()
+![PyPI](https://img.shields.io/pypi/v/itext2kg)
+[![Demo](https://img.shields.io/badge/Demo-Available-blue)](./examples/examples_of_use.ipynb)
+![Lint](https://github.com/AI4WA/Docs2KG/actions/workflows/lint.yml/badge.svg)
+![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow)
+
+🎉 Accepted @ [WISE 2024](https://wise2024-qatar.com/)
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/logo_white.png" width="300">
+    <source media="(prefers-color-scheme: light)" srcset="./docs/logo_black.png" width="300">
+    <img alt="Logo" src="./docs/logo_white.png" width="300">
+  </picture>
+</p>
+
 ## Overview
 
-iText2KG is a Python package designed to construct knowledge graphs incrementally by leveraging large language models for entity and relation extraction from text documents. It features zero-shot capability, allowing for knowledge extraction across various domains without specific training. The package includes modules for document distillation, entity extraction, and relation extraction, ensuring resolved and unique entities and relationships. It continuously updates the KG with new documents and integrates them into Neo4j for visual representation
+iText2KG is a Python package designed to incrementally construct consistent knowledge graphs with resolved entities and relations by leveraging large language models for entity and relation extraction from text documents. It features zero-shot capability, allowing for knowledge extraction across various domains without specific training. The package includes modules for document distillation, entity extraction, and relation extraction, ensuring resolved and unique entities and relationships. It continuously updates the KG with new documents and integrates them into Neo4j for visual representation
 
 ## Installation
 
@@ -62,8 +78,10 @@ IE_query = '''
 distilled_doc = document_distiller.distill(documents=documents, IE_query=IE_query, output_data_structure=Article)
 
 ```
+The schema depends on the user's specific requirements, as it outlines the essential components to extract or emphasize during the knowledge graph construction. Since there is no universal blueprint for all use cases, its design is subjective and varies by application or context. This flexibility is crucial to making the ```iText2KG``` method adaptable across a wide range of scenarios.
 
-You can define a custom schema using  ```pydantic_v1``` of ```langchain_core```. 
+You can define a custom schema using  ```pydantic_v1``` of ```langchain_core```. Some example schemas are available in [utils](./itext2kg/utils/schemas.py). You can use these or create new ones depending on your use-case. 
+
 
 ```python
 from typing import List, Optional
@@ -89,6 +107,8 @@ class Article(BaseModel):
 
 ### The ```iText2KG```
 The iText2KG module is the core component of the package, responsible for integrating various functionalities to construct the knowledge graph. It uses the distilled semantic sections from documents to extract entities and relationships, and then builds the knowledge graph incrementally. 
+
+Although it is highly recommended to pass the documents through the ```Document Distiller``` module, it is not required for graph creation. You can directly pass your chunks into the ```build_graph``` function of the ```iText2KG``` class; however, your graph may contain some noisy information.
 
 ```python
 # Initialize iText2KG with the OpenAI API key.
@@ -133,6 +153,13 @@ new_graph["relationships"] = global_rel
 GraphIntegrator(uri=URI, username=USERNAME, password=PASSWORD).visualize_graph(json_graph=new_graph)
 ```
 
+## 🔥 News
+
+We have addressed two major LLM hallucination issues related to KG construction with LLMs when passing the entities list and context to the LLM. These issues are:
+
+- The LLM might invent entities that do not exist in the provided entities list. We handled this problem by replacing the invented entities with the most similar ones from the input entities list.
+- The LLM might fail to assign a relation to some entities from the input entities list, causing a "forgetting effect." We handled this problem by reprompting the LLM to extract relations for those entities.
+
 ## Some ```iText2KG``` use-cases
 
 In the figure below, we have constructed a KG for the article [seasonal](./datasets/scientific_articles/seasonal.pdf) and for the company [company](https://auvalie.com/), with its permission to publish it publicly. Additionally, the Curriculum Vitae (CV) KG is based on the following generated [CV](./datasets/cvs/CV_Emily_Davis.pdf).
@@ -144,3 +171,5 @@ The dataset consists of five generated CVs using GPT-4, five randomly selected s
 
 ## Public Collaboration
 We welcome contributions from the community to improve iText2KG.
+
+## Citation
