@@ -5,6 +5,7 @@ __pycache__/
 
 # Notebooks
 examples/itext2kg.ipynb
+examples/examples_of_use copy.ipynb
 # C extensions
 *.so
 
