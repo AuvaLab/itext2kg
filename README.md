@@ -3,7 +3,6 @@
 [![Paper](https://img.shields.io/badge/Paper-View-green?style=flat&logo=adobeacrobatreader)]()
 ![PyPI](https://img.shields.io/pypi/v/itext2kg)
 [![Demo](https://img.shields.io/badge/Demo-Available-blue)](./examples/examples_of_use.ipynb)
-![Lint](https://github.com/AI4WA/Docs2KG/actions/workflows/lint.yml/badge.svg)
 ![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow)
 
 🎉 Accepted @ [WISE 2024](https://wise2024-qatar.com/)
