@@ -1,6 +1,6 @@
 # iText2KG: Incremental Knowledge Graphs Construction Using Large Language Models
 
-[![Paper](https://img.shields.io/badge/Paper-View-green?style=flat&logo=adobeacrobatreader)]()
+[![Paper](https://img.shields.io/badge/Paper-View-green?style=flat&logo=adobeacrobatreader)](https://arxiv.org/abs/2409.03284)
 ![PyPI](https://img.shields.io/pypi/v/itext2kg)
 [![Demo](https://img.shields.io/badge/Demo-Available-blue)](./examples/examples_of_use.ipynb)
 ![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow)
@@ -168,7 +168,22 @@ In the figure below, we have constructed a KG for the article [seasonal](./datas
 ## Dataset
 The dataset consists of five generated CVs using GPT-4, five randomly selected scientific articles representing various domains of study with diverse structures, and five company websites from different industries of varying sizes. Additionally, we have included distilled versions of the CVs and scientific articles based on predefined schemas.
 
+Another dataset has been added, consisting of 1,500 similar entity pairs and 500 relationships, inspired by various domains (e.g., news, scientific articles, HR practices), to estimate the threshold for merging entities and relationships based on cosine similarity.
+
 ## Public Collaboration
 We welcome contributions from the community to improve iText2KG.
 
 ## Citation
+```bibtex
+@article{lairgi2024itext2kg,
+  title={iText2KG: Incremental Knowledge Graphs Construction Using Large Language Models},
+  author={Lairgi, Yassir and Moncla, Ludovic and Cazabet, Rémy and Benabdeslem, Khalid and Cléau, Pierre},
+  journal={arXiv preprint arXiv:2409.03284},
+  year={2024},
+  note={Accepted at The International Web Information Systems Engineering conference (WISE) 2024},
+  url={https://arxiv.org/abs/2409.03284},
+  eprint={2409.03284},
+  archivePrefix={arXiv},
+  primaryClass={cs.AI}
+}
+```
