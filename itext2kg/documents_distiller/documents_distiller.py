@@ -7,17 +7,14 @@ class DocumentsDisiller:
     A class designed to distill essential information from multiple documents into a combined
     structure, using natural language processing tools to extract and consolidate information.
     """
-    def __init__(self, openai_api_key:str, model_name:str = "gpt-4-0125-preview", temperature:str=0) -> None:
+    def __init__(self, llm_model) -> None:
         """
-        Initializes the DocumentsDistiller with specified API key, model name, and operational parameters.
+        Initializes the DocumentsDistiller with specified language model
         
         Args:
-        openai_api_key (str): The API key for accessing OpenAI services.
-        model_name (str): The model name for the Chat API.
-        temperature (float): The temperature setting for the Chat API's responses.
+        llm_model: The language model instance to be used for generating semantic blocks.
         """
-        self.temperature = temperature
-        self.langchain_output_parser = LangchainOutputParser(openai_api_key=openai_api_key, model_name=model_name, temperature=temperature)
+        self.langchain_output_parser = LangchainOutputParser(llm_model=llm_model, embeddings_model=None)
     
     @staticmethod
     def __combine_dicts(dict_list:List[dict]):

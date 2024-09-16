@@ -1,7 +1,7 @@
 import numpy as np
 from typing import List
 from ..ientities_extraction import iEntitiesExtractor
-from ..irelation_extraction import iRelationsExtractor
+from ..irelations_extraction import iRelationsExtractor
 from ..utils import Matcher, DataHandler, LangchainOutputParser
 
 class iText2KG:
@@ -9,32 +9,26 @@ class iText2KG:
     A class designed to extract knowledge from text and structure it into a knowledge graph using
     entity and relationship extraction powered by language models.
     """
-    def __init__(self, openai_api_key:str, embeddings_model_name :str = "text-embedding-3-large", model_name:str = "gpt-4-turbo", temperature:float = 0, sleep_time:int=5) -> None:        
+    def __init__(self, llm_model, embeddings_model, sleep_time:int=5) -> None:        
         """
-        Initializes the iText2KG with specified API key, models, and operational parameters.
+        Initializes the iText2KG with specified language model, embeddings model, and operational parameters.
         
         Args:
-        openai_api_key (str): The API key for accessing OpenAI services.
-        embeddings_model_name (str): The model name for text embeddings.
-        model_name (str): The model name for the Chat API.
-        temperature (float): The temperature setting for the Chat API's responses.
-        sleep_time (int): The time to wait (in seconds) when encountering rate limits or errors.
+        llm_model: The language model instance to be used for extracting entities and relationships from text.
+        embeddings_model: The embeddings model instance to be used for creating vector representations of extracted entities.
+        sleep_time (int): The time to wait (in seconds) when encountering rate limits or errors. Defaults to 5 seconds.
         """
-        self.ientities_extractor =  iEntitiesExtractor(openai_api_key=openai_api_key,
-                                                       embeddings_model_name=embeddings_model_name,
-                                                       model_name=model_name,
-                                                       temperature=temperature,
+        self.ientities_extractor =  iEntitiesExtractor(llm_model=llm_model, 
+                                                       embeddings_model=embeddings_model,
                                                        sleep_time=sleep_time) 
         
-        self.irelations_extractor = iRelationsExtractor(openai_api_key=openai_api_key,
-                                                       embeddings_model_name=embeddings_model_name,
-                                                       model_name=model_name,
-                                                       temperature=temperature,
-                                                       sleep_time=sleep_time)
+        self.irelations_extractor = iRelationsExtractor(llm_model=llm_model, 
+                                                        embeddings_model=embeddings_model,
+                                                        sleep_time=sleep_time)
 
         self.data_handler = DataHandler()
         self.matcher = Matcher()
-        self.langchain_output_parser = LangchainOutputParser(openai_api_key=openai_api_key,)
+        self.langchain_output_parser = LangchainOutputParser(llm_model=llm_model, embeddings_model=embeddings_model)
         
         
     def extract_entities_for_all_sections(self, sections:List[str], ent_threshold = 0.8):
@@ -118,9 +112,13 @@ class iText2KG:
         global_relationships = self.irelations_extractor.extract_relations(context=sections[0], entities = list(map(lambda w:w["name"], global_entities)))
         
         isolated_entities = self.data_handler.find_isolated_entities(global_entities=global_entities, relations=global_relationships)
-        if isolated_entities:
-            corrected_relations = self.irelations_extractor.extract_relations_for_isolated_entities(context=sections[0], isolated_entities=isolated_entities)
-            global_relationships.extend(corrected_relations)
+        while isolated_entities:
+            print("[INFO] The isolated entities are ", isolated_entities)
+            corrected_relations = self.irelations_extractor.extract_relations_for_isolated_entities(context=sections[0], isolated_entities=list(map(lambda w:w["name"],isolated_entities)), local_non_isolated_entities=list(map(lambda w:w["name"],global_entities)))
+            matched_corrected_relationships, _ = self.matcher.process_lists(list1 = corrected_relations, list2=global_relationships, for_entity_or_relation="relation", threshold=rel_threshold)
+            global_relationships.extend(matched_corrected_relationships)
+            # Re-evaluate isolated entities after extending global_relationships
+            isolated_entities = self.data_handler.find_isolated_entities(global_entities=global_entities, relations=global_relationships)
         
         global_relationships = self.data_handler.match_relations_with_isolated_entities(global_entities=global_entities, relations=global_relationships, matcher= lambda ent:self.matcher.find_match(ent, global_entities, match_type="entity", threshold=0.5), embedding_calculator= lambda ent:self.langchain_output_parser.calculate_embeddings(ent))
         
@@ -136,9 +134,12 @@ class iText2KG:
             processed_relationships, _ = self.matcher.process_lists(list1 = relationships, list2=global_relationships, for_entity_or_relation="relation", threshold=rel_threshold)
             
             isolated_entities = self.data_handler.find_isolated_entities(global_entities=processed_entities, relations=processed_relationships)
-            if isolated_entities:
-                corrected_relations = self.irelations_extractor.extract_relations_for_isolated_entities(context=sections[i], isolated_entities=isolated_entities)
-                processed_relationships.extend(corrected_relations)
+            while isolated_entities:
+                print("[INFO] The isolated entities are ", isolated_entities)
+                corrected_relations = self.irelations_extractor.extract_relations_for_isolated_entities(context=sections[i], isolated_entities=list(map(lambda w:w["name"],isolated_entities)), local_non_isolated_entities=list(map(lambda w:w["name"],processed_entities)))
+                matched_corrected_relationships, _ = self.matcher.process_lists(list1 = corrected_relations, list2=global_relationships, for_entity_or_relation="relation", threshold=rel_threshold)
+                processed_relationships.extend(matched_corrected_relationships)
+                isolated_entities = self.data_handler.find_isolated_entities(global_entities=processed_entities, relations=processed_relationships)
             
             processed_relationships = self.data_handler.match_relations_with_isolated_entities(global_entities=processed_entities, relations=processed_relationships, matcher= lambda ent:self.matcher.find_match(ent, processed_entities, match_type="entity", threshold=0.5), embedding_calculator= lambda ent:self.langchain_output_parser.calculate_embeddings(ent))
 

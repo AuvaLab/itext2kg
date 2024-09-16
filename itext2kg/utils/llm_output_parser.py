@@ -12,20 +12,23 @@ class LangchainOutputParser:
     A parser class for extracting and embedding information using Langchain and OpenAI APIs.
     """
     
-    def __init__(self, openai_api_key: str, embeddings_model_name: str = "text-embedding-3-large", model_name: str = "gpt-4-turbo", temperature: float = 0, sleep_time: int = 5) -> None:
+    def __init__(self, llm_model, embeddings_model, sleep_time: int = 5) -> None:
         """
         Initialize the LangchainOutputParser with specified API key, models, and operational parameters.
         
         Args:
-        openai_api_key (str): The API key for accessing OpenAI services.
+        api_key (str): The API key for accessing OpenAI services.
         embeddings_model_name (str): The model name for text embeddings.
         model_name (str): The model name for the Chat API.
         temperature (float): The temperature setting for the Chat API's responses.
         sleep_time (int): The time to wait (in seconds) when encountering rate limits or errors.
         """
-        self.model = ChatOpenAI(api_key=openai_api_key, model_name=model_name, temperature=temperature)
+        #self.model = ChatOpenAI(api_key=api_key, model_name=model_name, temperature=temperature)
+        #self.embeddings_model = OpenAIEmbeddings(model=embeddings_model_name, api_key=api_key)
+        
+        self.model = llm_model
+        self.embeddings_model = embeddings_model
         self.sleep_time = sleep_time
-        self.embeddings_model = OpenAIEmbeddings(model=embeddings_model_name, api_key=openai_api_key)
 
     def calculate_embeddings(self, text: Union[str, List[str]]) -> np.ndarray:
         """
@@ -54,7 +57,6 @@ class LangchainOutputParser:
         IE_query: str = '''
         # DIRECTIVES : 
         - Act like an experienced information extractor. 
-        - You have a chunk of a company website.
         - If you do not find the right information, keep its place empty.
         '''
         ):
