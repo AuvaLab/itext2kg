@@ -4,7 +4,7 @@
 ![GitHub forks](https://img.shields.io/github/forks/auvalab/itext2kg?style=social)
 [![Paper](https://img.shields.io/badge/Paper-View-green?style=flat&logo=adobeacrobatreader)](https://arxiv.org/abs/2409.03284)
 ![PyPI](https://img.shields.io/pypi/v/itext2kg)
-[![Demo](https://img.shields.io/badge/Demo-Available-blue)](./examples/examples_of_use.ipynb)
+[![Demo](https://img.shields.io/badge/Demo-Available-blue)](./examples/different_llm_models.ipynb)
 ![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow)
 
 🎉 Accepted @ [WISE 2024](https://wise2024-qatar.com/)
