@@ -23,9 +23,10 @@ iText2KG is a Python package designed to incrementally construct consistent know
 
 ## 🔥 News
 * [17/09/2024] Latest features: 
-  - Now, iText2KG is compatible with all the chat/embeddings models supported by LangChain.
-  - The constructed graph could be further expanded by passing the already extracted entities and relationships to iText2KG. 
-  - iText2KG is supported by all Python versions > 3.9.
+  - Now, iText2KG is compatible with all the chat/embeddings models supported by LangChain. For available chat models, refer to the options listed at: https://python.langchain.com/v0.2/docs/integrations/chat/. For embedding models, explore the choices at: https://python.langchain.com/v0.2/docs/integrations/text_embedding/.
+
+  - The constructed graph can now be further expanded by passing the already extracted entities and relationships to iText2KG.
+  - iText2KG is compatible with all Python versions above 3.9.
 
 
 * [16/07/2024] We have addressed two major LLM hallucination issues related to KG construction with LLMs when passing the entities list and context to the LLM. These issues are:
