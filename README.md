@@ -1,5 +1,7 @@
 # iText2KG: Incremental Knowledge Graphs Construction Using Large Language Models
 
+![GitHub stars](https://img.shields.io/github/stars/auvalab/itext2kg?style=social)
+![GitHub forks](https://img.shields.io/github/forks/auvalab/itext2kg?style=social)
 [![Paper](https://img.shields.io/badge/Paper-View-green?style=flat&logo=adobeacrobatreader)](https://arxiv.org/abs/2409.03284)
 ![PyPI](https://img.shields.io/pypi/v/itext2kg)
 [![Demo](https://img.shields.io/badge/Demo-Available-blue)](./examples/examples_of_use.ipynb)
@@ -17,7 +19,20 @@
 
 ## Overview
 
-iText2KG is a Python package designed to incrementally construct consistent knowledge graphs with resolved entities and relations by leveraging large language models for entity and relation extraction from text documents. It features zero-shot capability, allowing for knowledge extraction across various domains without specific training. The package includes modules for document distillation, entity extraction, and relation extraction, ensuring resolved and unique entities and relationships. It continuously updates the KG with new documents and integrates them into Neo4j for visual representation
+iText2KG is a Python package designed to incrementally construct consistent knowledge graphs with resolved entities and relations by leveraging large language models for entity and relation extraction from text documents. It features zero-shot capability, allowing for knowledge extraction across various domains without specific training. The package includes modules for document distillation, entity extraction, and relation extraction, ensuring resolved and unique entities and relationships. It continuously updates the KG with new documents and integrates them into Neo4j for visual representation.
+
+## 🔥 News
+* [17/09/2024] Latest features: 
+  - Now, iText2KG is compatible with all the chat/embeddings models supported by LangChain.
+  - The constructed graph could be further expanded by passing the already extracted entities and relationships to iText2KG. 
+  - iText2KG is supported by all Python versions > 3.9.
+
+
+* [16/07/2024] We have addressed two major LLM hallucination issues related to KG construction with LLMs when passing the entities list and context to the LLM. These issues are:
+
+  - The LLM might invent entities that do not exist in the provided entities list. We handled this problem by replacing the invented entities with the most similar ones from the input entities list.
+  - The LLM might fail to assign a relation to some entities from the input entities list, causing a "forgetting effect." We handled this problem by reprompting the LLM to extract relations for those entities.
+
 
 ## Installation
 
@@ -44,11 +59,69 @@ The LLM is prompted to extract entities representing one unique concept to avoid
 ![prompts](./docs/prompts_.png)
 
 ## Modules and Examples
-All the examples are provided in the following jupyter notebook [example](./examples/examples_of_use.ipynb).
+All the examples are provided in the following jupyter notebook [example](./examples/different_llm_models.ipynb).
+
+Now, iText2KG is compatible with all language models supported by LangChain.
+
+To use iText2KG, you will need both a chat model and an embeddings model.
+
+For available chat models, refer to the options listed at: https://python.langchain.com/v0.2/docs/integrations/chat/. For embedding models, explore the choices at: https://python.langchain.com/v0.2/docs/integrations/text_embedding/.
+
+Please ensure that you install the necessary package for each chat model before use.
+
+#### Mistral
+
+
+For Mistral, please set up your model using the tutorial here: https://python.langchain.com/v0.2/docs/integrations/chat/mistralai/. Similarly, for the embedding model, follow the setup guide here: https://python.langchain.com/v0.2/docs/integrations/text_embedding/mistralai/ .
+
+```python
+from langchain_mistralai import ChatMistralAI
+from langchain_mistralai import MistralAIEmbeddings
+
+mistral_api_key = "##"
+mistral_llm_model = ChatMistralAI(
+    api_key = mistral_api_key,
+    model="mistral-large-latest",
+    temperature=0,
+    max_retries=2,
+)
+
+
+mistral_embeddings_model = MistralAIEmbeddings(
+    model="mistral-embed",
+    api_key = mistral_api_key
+)
+```
 
 The Document Distiller module reformulates raw documents into predefined and semantic blocks using LLMs. It utilizes a schema to guide the extraction of specific information from each document.
 
+#### OpenAI
+The same applies for OpenAI.
+
+please setup your model using the tutorial : https://python.langchain.com/v0.2/docs/integrations/chat/openai/ The same for embedding model : https://python.langchain.com/v0.2/docs/integrations/text_embedding/openai/
+
+```python
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+
+openai_api_key = "##"
+
+openai_llm_model = llm = ChatOpenAI(
+    api_key = openai_api_key,
+    model="gpt-4o",
+    temperature=0,
+    max_tokens=None,
+    timeout=None,
+    max_retries=2,
+)
+
+openai_embeddings_model = OpenAIEmbeddings(
+    api_key = openai_api_key ,
+    model="text-embedding-3-large",
+)
+```
+
 ### The ```DocumentDistiller```
+
 Example
 
 ```python
@@ -56,11 +129,8 @@ from itext2kg import DocumentDistiller
 # You can define a schema or upload some predefined ones.
 from itext2kg.utils import Article
 
-# Define your OpenAI API key.
-OPENAI_API_KEY = "####"
-
-# Initialize the DocumentDistiller with the OpenAI API key.
-document_distiller = DocumentDistiller(openai_api_key=OPENAI_API_KEY)
+# Initialize the DocumentDistiller with llm model.
+document_distiller = DocumentDistiller(llm_model = openai_llm_model)
 
 # List of documents to be distilled.
 documents = ["doc1", "doc2", "doc3"]
@@ -79,12 +149,12 @@ distilled_doc = document_distiller.distill(documents=documents, IE_query=IE_quer
 ```
 The schema depends on the user's specific requirements, as it outlines the essential components to extract or emphasize during the knowledge graph construction. Since there is no universal blueprint for all use cases, its design is subjective and varies by application or context. This flexibility is crucial to making the ```iText2KG``` method adaptable across a wide range of scenarios.
 
-You can define a custom schema using  ```pydantic_v1``` of ```langchain_core```. Some example schemas are available in [utils](./itext2kg/utils/schemas.py). You can use these or create new ones depending on your use-case. 
+You can define a custom schema using  ```pydantic```. Some example schemas are available in [utils](./itext2kg/utils/schemas.py). You can use these or create new ones depending on your use-case. 
 
 
 ```python
 from typing import List, Optional
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 
 # Define an Author model with name and affiliation fields.
 class Author(BaseModel):
@@ -110,8 +180,10 @@ The iText2KG module is the core component of the package, responsible for integr
 Although it is highly recommended to pass the documents through the ```Document Distiller``` module, it is not required for graph creation. You can directly pass your chunks into the ```build_graph``` function of the ```iText2KG``` class; however, your graph may contain some noisy information.
 
 ```python
-# Initialize iText2KG with the OpenAI API key.
-itext2kg = iText2KG(openai_api_key=OPENAI_API_KEY)
+from itext2kg import iText2KG
+
+# Initialize iText2KG with the llm model and embeddings model.
+itext2kg = iText2KG(llm_model = openai_llm_model, embeddings_model = openai_embeddings_model)
 
 # Format the distilled document into semantic sections.
 semantic_blocks = [f"{key} - {value}".replace("{", "[").replace("}", "]") for key, value in distilled_doc.items()]
@@ -122,16 +194,18 @@ global_ent, global_rel = itext2kg.build_graph(sections=semantic_blocks)
 ```
 
 The Arguments of ```iText2KG```:
-- `openai_api_key` (str): The API key for accessing OpenAI services. This key is used to authenticate and make requests to OpenAI's language models for entity and relation extraction.
 
-- `embeddings_model_name` (str, optional): The name of the embeddings model to be used for generating text embeddings. Default is `"text-embedding-3-large"`.
+- `llm_model`: The language model instance to be used for extracting entities and relationships from text.
+- `embeddings_model`: The embeddings model instance to be used for creating vector representations of extracted entities.
+- `sleep_time (int)`: The time to wait (in seconds) when encountering rate limits or errors (for OpenAI only). Defaults to 5 seconds.
 
-- `model_name` (str, optional): The name of the language model to be used for entity and relation extraction. Default is `"gpt-4-turbo"`.
+The Argument of ```iText2KG``` method ```build_graph```:
 
-- `temperature` (float, optional): The temperature setting for the language model, controlling the randomness of the output. Default is `0`.
-
-- `sleep_time` (int, optional): The sleep time between API requests to avoid rate limiting. Default is `5` seconds.
-
+- `sections (List[str])`: A list of strings (semantic blocks) where each string represents a section of the document from which entities and relationships will be extracted.
+- `existing_global_entities (List[dict], optional)`: A list of existing global entities to match against the newly extracted entities. Each entity is represented as a dictionary.
+- `existing_global_relationships (List[dict], optional)`: A list of existing global relationships to match against the newly extracted relationships. Each relationship is represented as a dictionary.
+- `ent_threshold (float, optional)`: The threshold for entity matching, used to merge entities from different sections. Default is 0.7.
+- `rel_threshold (float, optional)`: The threshold for relationship matching, used to merge relationships from different sections. Default is 0.7.
 
 
 ## The ```GraphIntegrator```
@@ -152,12 +226,7 @@ new_graph["relationships"] = global_rel
 GraphIntegrator(uri=URI, username=USERNAME, password=PASSWORD).visualize_graph(json_graph=new_graph)
 ```
 
-## 🔥 News
 
-We have addressed two major LLM hallucination issues related to KG construction with LLMs when passing the entities list and context to the LLM. These issues are:
-
-- The LLM might invent entities that do not exist in the provided entities list. We handled this problem by replacing the invented entities with the most similar ones from the input entities list.
-- The LLM might fail to assign a relation to some entities from the input entities list, causing a "forgetting effect." We handled this problem by reprompting the LLM to extract relations for those entities.
 
 ## Some ```iText2KG``` use-cases
 
@@ -177,7 +246,7 @@ We welcome contributions from the community to improve iText2KG.
 ```bibtex
 @article{lairgi2024itext2kg,
   title={iText2KG: Incremental Knowledge Graphs Construction Using Large Language Models},
-  author={Lairgi, Yassir and Moncla, Ludovic and Cazabet, Rémy and Benabdeslem, Khalid and Cléau, Pierre},
+  author={Lairgi, Yassir and Moncla, Ludovic and Cazabet, R{\'e}my and Benabdeslem, Khalid and Cl{\'e}au, Pierre},
   journal={arXiv preprint arXiv:2409.03284},
   year={2024},
   note={Accepted at The International Web Information Systems Engineering conference (WISE) 2024},
