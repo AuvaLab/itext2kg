@@ -6,6 +6,7 @@ __pycache__/
 # Notebooks
 examples/itext2kg.ipynb
 examples/examples_of_use copy.ipynb
+deprecated/
 # C extensions
 *.so
 
@@ -133,7 +134,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
+venv-test
 # Spyder project settings
 .spyderproject
 .spyproject
