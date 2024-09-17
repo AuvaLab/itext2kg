@@ -2,7 +2,7 @@ langchain==0.3.0
 langchain-core==0.3.0
 langchain-openai==0.2.0
 neo4j==5.24.0
-numpy
+numpy 
 openai==1.45.0
 openpyxl==3.1.5
 pydantic-settings==2.5.2
