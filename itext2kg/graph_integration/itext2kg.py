@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List
+from typing import List, Tuple
 from ..ientities_extraction import iEntitiesExtractor
 from ..irelations_extraction import iRelationsExtractor
 from ..utils import Matcher, DataHandler, LangchainOutputParser
@@ -94,7 +94,7 @@ class iText2KG:
         return global_relationships
 
 
-    def build_graph(self, sections:List[str], ent_threshold:float = 0.7, rel_threshold:float = 0.7):
+    def build_graph(self, sections:List[str], existing_global_entities:List[dict]=None, existing_global_relationships:List[dict]=None, ent_threshold:float = 0.7, rel_threshold:float = 0.7):
         """
         Builds a knowledge graph from text by extracting entities and relationships and then integrating them into a structured graph. This is the main function of the iText2KG class.
         
@@ -122,6 +122,16 @@ class iText2KG:
         
         global_relationships = self.data_handler.match_relations_with_isolated_entities(global_entities=global_entities, relations=global_relationships, matcher= lambda ent:self.matcher.find_match(ent, global_entities, match_type="entity", threshold=0.5), embedding_calculator= lambda ent:self.langchain_output_parser.calculate_embeddings(ent))
         
+        if existing_global_entities and existing_global_relationships:
+            print(f"[INFO] Matching the Document {1} Entities and Relationships with the Existing Global Entities/Relations")
+            global_entities, global_relationships = self.matcher.match_entities_and_update_relationships(entities1=global_entities,
+                                                                 entities2=existing_global_entities,
+                                                                 relationships1=global_relationships,
+                                                                 relationships2=existing_global_relationships,
+                                                                 ent_threshold=ent_threshold,
+                                                                 rel_threshold=rel_threshold)        
+        
+        assert global_relationships != None, print("Warning", global_relationships)
         for i in range(1, len(sections)):
             print("[INFO] Extracting Entities from the Document", i+1)
             entities = self.ientities_extractor.extract_entities(context= sections[i])
@@ -146,4 +156,3 @@ class iText2KG:
             global_relationships.extend(processed_relationships)
             
         return self.data_handler.handle_data(global_entities, data_type="entity"), self.data_handler.handle_data(global_relationships, data_type="relation")
-    
