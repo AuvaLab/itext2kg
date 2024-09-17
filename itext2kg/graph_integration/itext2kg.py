@@ -99,9 +99,19 @@ class iText2KG:
         Builds a knowledge graph from text by extracting entities and relationships and then integrating them into a structured graph. This is the main function of the iText2KG class.
         
         Args:
-        sections (List[str]): The sections of the document from which to extract information.
-        ent_threshold (float): Entity match threshold for consolidating entities.
-        rel_threshold (float): Relationship match threshold for consolidating relationships.
+        sections (List[str]): A list of strings where each string represents a section of the document 
+                              from which entities and relationships will be extracted.
+        existing_global_entities (List[dict], optional): A list of existing global entities to match 
+                                                         against the newly extracted entities. Each 
+                                                         entity is represented as a dictionary.
+        existing_global_relationships (List[dict], optional): A list of existing global relationships 
+                                                               to match against the newly extracted 
+                                                               relationships. Each relationship is 
+                                                               represented as a dictionary.
+        ent_threshold (float, optional): The threshold for entity matching, used to consolidate entities 
+                                         from different sections. Default is 0.7.
+        rel_threshold (float, optional): The threshold for relationship matching, used to consolidate 
+                                         relationships from different sections. Default is 0.7.
 
         Returns:
         Tuple[List, List]: A tuple containing lists of consolidated entities and relationships.
