@@ -130,18 +130,8 @@ class iText2KG:
             # Re-evaluate isolated entities after extending global_relationships
             isolated_entities = self.data_handler.find_isolated_entities(global_entities=global_entities, relations=global_relationships)
         
-        global_relationships = self.data_handler.match_relations_with_isolated_entities(global_entities=global_entities, relations=global_relationships, matcher= lambda ent:self.matcher.find_match(ent, global_entities, match_type="entity", threshold=0.5), embedding_calculator= lambda ent:self.langchain_output_parser.calculate_embeddings(ent))
+        global_relationships = self.data_handler.match_relations_with_isolated_entities(global_entities=global_entities, relations=global_relationships, matcher= lambda ent:self.matcher.find_match(ent, global_entities, match_type="entity", threshold=0.5), embedding_calculator= lambda ent:self.langchain_output_parser.calculate_embeddings(ent))    
         
-        if existing_global_entities and existing_global_relationships:
-            print(f"[INFO] Matching the Document {1} Entities and Relationships with the Existing Global Entities/Relations")
-            global_entities, global_relationships = self.matcher.match_entities_and_update_relationships(entities1=global_entities,
-                                                                 entities2=existing_global_entities,
-                                                                 relationships1=global_relationships,
-                                                                 relationships2=existing_global_relationships,
-                                                                 ent_threshold=ent_threshold,
-                                                                 rel_threshold=rel_threshold)        
-        
-        assert global_relationships != None, print("Warning", global_relationships)
         for i in range(1, len(sections)):
             print("[INFO] Extracting Entities from the Document", i+1)
             entities = self.ientities_extractor.extract_entities(context= sections[i])
@@ -150,7 +140,7 @@ class iText2KG:
             
             #relationships = relationship_extraction(context= sections[i], entities=list(map(lambda w:w["name"], processed_entities)))
             print("[INFO] Extracting Relations from the Document", i+1)
-            relationships = self.irelations_extractor.extract_relations(context= sections, entities=list(map(lambda w:w["name"], processed_entities)))
+            relationships = self.irelations_extractor.extract_relations(context= sections[i], entities=list(map(lambda w:w["name"], processed_entities)))
             processed_relationships, _ = self.matcher.process_lists(list1 = relationships, list2=global_relationships, for_entity_or_relation="relation", threshold=rel_threshold)
             
             isolated_entities = self.data_handler.find_isolated_entities(global_entities=processed_entities, relations=processed_relationships)
@@ -164,5 +154,14 @@ class iText2KG:
             processed_relationships = self.data_handler.match_relations_with_isolated_entities(global_entities=processed_entities, relations=processed_relationships, matcher= lambda ent:self.matcher.find_match(ent, processed_entities, match_type="entity", threshold=0.5), embedding_calculator= lambda ent:self.langchain_output_parser.calculate_embeddings(ent))
 
             global_relationships.extend(processed_relationships)
-            
+        
+        if existing_global_entities and existing_global_relationships:
+            print(f"[INFO] Matching the Document {1} Entities and Relationships with the Existing Global Entities/Relations")
+            global_entities, global_relationships = self.matcher.match_entities_and_update_relationships(entities1=global_entities,
+                                                                 entities2=existing_global_entities,
+                                                                 relationships1=global_relationships,
+                                                                 relationships2=existing_global_relationships,
+                                                                 ent_threshold=ent_threshold,
+                                                                 rel_threshold=rel_threshold)    
+               
         return self.data_handler.handle_data(global_entities, data_type="entity"), self.data_handler.handle_data(global_relationships, data_type="relation")
