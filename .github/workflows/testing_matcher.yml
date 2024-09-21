@@ -1,9 +1,13 @@
 name: testing matcher algorithm
 on:
   pull_request:
+    paths:
+      - "./itext2kg/utils/matcher.py"
   push:
     branches:
       - "main"
+    paths:
+      - "./itext2kg/utils/matcher.py"
 
 jobs:
   test:
