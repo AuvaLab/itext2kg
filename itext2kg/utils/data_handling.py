@@ -1,4 +1,4 @@
-from typing import Literal, List, Tuple
+from typing import Literal, List
 import re 
 
 class DataHandler:

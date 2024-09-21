@@ -37,7 +37,7 @@ class iEntitiesExtractor():
         print(entities)
         
         
-        if "entities" not in entities.keys() or entities == None:
+        if "entities" not in entities.keys() or entities is None:
             print("Not formatted in the desired format, we are retrying ....")
             self.extract_entities(context=context, entities=entities, embeddings=embeddings, property_name=property_name, entity_name_key=entity_name_key)
         

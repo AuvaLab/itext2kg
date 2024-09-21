@@ -1,8 +1,7 @@
-import numpy as np
 from typing import List, Tuple
-from ..ientities_extraction import iEntitiesExtractor
-from ..irelations_extraction import iRelationsExtractor
-from ..utils import Matcher, DataHandler, LangchainOutputParser
+from .ientities_extraction import iEntitiesExtractor
+from .irelations_extraction import iRelationsExtractor
+from .utils import Matcher, DataHandler, LangchainOutputParser
 
 class iText2KG:
     """
@@ -94,7 +93,7 @@ class iText2KG:
         return global_relationships
 
 
-    def build_graph(self, sections:List[str], existing_global_entities:List[dict]=None, existing_global_relationships:List[dict]=None, ent_threshold:float = 0.7, rel_threshold:float = 0.7):
+    def build_graph(self, sections:List[str], existing_global_entities:List[dict]=None, existing_global_relationships:List[dict]=None, ent_threshold:float = 0.7, rel_threshold:float = 0.7) -> Tuple[List, List]:
         """
         Builds a knowledge graph from text by extracting entities and relationships and then integrating them into a structured graph. This is the main function of the iText2KG class.
         
