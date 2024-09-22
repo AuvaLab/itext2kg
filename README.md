@@ -8,7 +8,7 @@
 ![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow)
 
 🎉 Accepted @ [WISE 2024](https://wise2024-qatar.com/)
-
+🚧 We are currently refactoring all the iText2KG code and adding new features for incremental KG construction. Please bear with us; we will release a much cleaner version in the coming days. In the meantime, feel free to try the demo above.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./docs/logo_white.png" width="300">
