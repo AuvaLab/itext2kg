@@ -1,4 +1,5 @@
 from ..utils import LangchainOutputParser, EntitiesExtractor, DataHandler
+from ..models import Entity, KnowledgeGraph
 
 class iEntitiesExtractor():
     """
@@ -20,7 +21,7 @@ class iEntitiesExtractor():
         self.data_handler = DataHandler()
  
     
-    def extract_entities(self, context: str, embeddings: bool = True, property_name = "properties", entity_name_key = "name"):
+    def extract_entities(self, context: str, max_tries:int=5):
         """
         Extract entities from a given context and optionally add embeddings to each.
         
@@ -33,20 +34,33 @@ class iEntitiesExtractor():
         Returns:
         List[dict]: A list of extracted entities with optional embeddings.
         """
-        entities = self.langchain_output_parser.extract_information_as_json_for_context(context=context, output_data_structure=EntitiesExtractor)
-        print(entities)
+        tries = 0
+        entities = None
         
-        
-        if "entities" not in entities.keys() or entities is None:
-            print("Not formatted in the desired format, we are retrying ....")
-            self.extract_entities(context=context, entities=entities, embeddings=embeddings, property_name=property_name, entity_name_key=entity_name_key)
-        
-        return self.data_handler.add_embeddings_as_property_batch(embeddings_function=lambda x:self.langchain_output_parser.calculate_embeddings(x), 
-                                                                  items=entities["entities"],
-                                                                  property_name=property_name,
-                                                                  item_name_key=entity_name_key,
-                                                                  embeddings=embeddings)
-    
+ 
+        while tries < max_tries:
+            try:
+                entities = self.langchain_output_parser.extract_information_as_json_for_context(
+                    context=context, output_data_structure=EntitiesExtractor
+                )
 
-        
+                if entities and "entities" in entities.keys():
+                    break
+                
+            except Exception as e:
+                print(f"Not Formatted in the desired format. Error occurred: {e}. Retrying... (Attempt {tries + 1}/{max_tries})")
+
+            tries += 1
     
+        if not entities or "entities" not in entities:
+            raise ValueError("Failed to extract entities after multiple attempts.")
+
+        entities = [Entity(label=entity["label"], name = entity["name"]) 
+                    for entity in entities["entities"]]
+        
+        kg = KnowledgeGraph(entities = entities, relationships=[])
+        kg.embed_entities(
+            embeddings_function=lambda x:self.langchain_output_parser.calculate_embeddings(x)
+            )
+        print(kg.entities)
+        return kg.entities

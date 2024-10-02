@@ -57,8 +57,8 @@ class EntitiesExtractor(BaseModel):
     entities : List[Entity] = Field("All the entities presented in the context. The entities should encode ONE concept.")
     
 class Relationship(BaseModel):
-    startNode: str = Field("The starting entity, which is present in the entities list.")
-    endNode: str = Field("The ending entity, which is present in the entities list.")
+    startNode: Entity = Field("The starting entity, which is present in the entities list.")
+    endNode: Entity = Field("The ending entity, which is present in the entities list.")
     name: str = Field("The predicate that defines the relationship between the two entities. This predicate should represent a single, semantically distinct relation.")
 
 class RelationshipsExtractor(BaseModel):
