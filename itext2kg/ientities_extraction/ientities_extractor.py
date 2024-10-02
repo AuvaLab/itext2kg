@@ -23,16 +23,18 @@ class iEntitiesExtractor():
     
     def extract_entities(self, context: str, max_tries:int=5):
         """
-        Extract entities from a given context and optionally add embeddings to each.
+        Extract entities from a given context.
         
         Args:
-        context (str): The textual context from which entities will be extracted.
-        embeddings (bool): A flag to determine whether to add embeddings to the extracted entities.
-        property_name (str): The property name under which embeddings will be stored in the entity.
-        entity_name_key (str): The key name for the entity's name.
+            context (str): The textual context from which entities will be extracted.
+            max_tries (int): The maximum number of attempts to extract entities. Defaults to 5.
         
         Returns:
-        List[dict]: A list of extracted entities with optional embeddings.
+            List[Entity]: A list of extracted entities with embeddings.
+        
+        Raises:
+            ValueError: If entity extraction fails after the specified maximum number of attempts.
+        
         """
         tries = 0
         entities = None
