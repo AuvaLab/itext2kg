@@ -3,11 +3,15 @@ on:
   pull_request:
     paths:
       - "./itext2kg/utils/matcher.py"
+      - "./itext2kg/ientities_extraction/**"
+      - "./itext2kg/irelations_extraction/**"
   push:
     branches:
       - "main"
     paths:
       - "./itext2kg/utils/matcher.py"
+      - "./itext2kg/ientities_extraction/**"
+      - "./itext2kg/irelations_extraction/**"
 
 jobs:
   test:
@@ -48,4 +52,4 @@ jobs:
           key: pytest_cache-${{ github.head_ref }}
 
       - name: Run unit tests
-        run: python -m pytest ./tests/testing_matcher.py
+        run: python -m pytest
