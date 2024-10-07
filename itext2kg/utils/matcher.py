@@ -38,12 +38,12 @@ class Matcher:
 
         if best_match:
             if isinstance(obj1, Relationship):
-                print(f"[INFO] Wohoo ! Relation using embeddings is matched --- {obj1.name} -merged--> {best_match.name} ")
+                print(f"[INFO] Wohoo! Relation was matched --- [{obj1.name}] --merged --> [{best_match.name}] ")
                 obj1.name = best_match.name
                 obj1.properties.embeddings = best_match.properties.embeddings
                 
             elif isinstance(obj1, Entity):
-                print(f"[INFO] Wohoo ! Entity using embeddings is matched --- {obj1.name}:{obj1.label} -merged--> {best_match.name}:{best_match.label} ")
+                print(f"[INFO] Wohoo! Entity was matched --- [{obj1.name}:{obj1.label}] --merged--> [{best_match.name}:{best_match.label}]")
                 return best_match
 
         return obj1
@@ -90,11 +90,11 @@ class Matcher:
         :param list1: First list to process (local items).
         :param list2: Second list to be compared against (global items).
         :param for_entity_or_relation: Specifies whether the processing is for entities or relations.
-        :return: Two processed lists.
+        :return: (matched_local_items, new_global_items)
         """
         list3 = [self.find_match(obj1, list2, threshold=threshold) for obj1 in list1] #matched_local_items
         list4 = self.create_union_list(list3, list2) #new_global_items
-        return list3, list4
+        return list3, list(set(list4))
     
     
     def match_entities_and_update_relationships(
@@ -116,7 +116,7 @@ class Matcher:
         :param ent_threshold: Cosine similarity threshold for entities.
         :return: Updated entities list and relationships list.
         """
-        # Step 1: Match the entities (Entities) from both lists
+        # Step 1: Match the entities and relations from both lists
         matched_entities1, global_entities = self.process_lists(entities1, entities2, ent_threshold)
         matched_relations, _ = self.process_lists(relationships1, relationships2, rel_threshold)
 
@@ -131,7 +131,7 @@ class Matcher:
         def update_relationships(relationships: List[Relationship]) -> List[Relationship]:
             updated_relationships = []
             for rel in relationships:
-                updated_rel = rel.copy()  # Create a copy to modify
+                updated_rel = rel.model_copy()  # Create a copy to modify
                 # Update the 'startEntity' and 'endEntity' names with matched entity names
                 if rel.startEntity in entity_name_mapping:
                     updated_rel.startEntity = entity_name_mapping[rel.startEntity]
