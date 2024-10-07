@@ -39,6 +39,10 @@ class iRelationsExtractor:
             entities (List[Entity]): A list of Entity instances to be considered in the extraction.
             isolated_entities_without_relations (List[Entity], optional): A list of entities without existing relationships to include in the extraction. Defaults to None.
             max_tries (int): The maximum number of attempts to extract relationships. Defaults to 5.
+            entity_name_weight (float): The weight of the entity name, set to 0.6, indicating its
+                                     relative importance in the overall evaluation process.
+            entity_label_weight (float): The weight of the entity label, set to 0.4, reflecting its
+                                      secondary significance in the evaluation process.
         
         Returns:
             List[Relationship]: A list of extracted Relationship instances with embeddings.
@@ -168,6 +172,10 @@ class iRelationsExtractor:
             rel_threshold (float): The threshold for matching corrected relationships. Defaults to 0.7.
             max_tries (int): The maximum number of attempts to extract relationships. Defaults to 5.
             max_tries_isolated_entities (int): The maximum number of attempts to process isolated entities. Defaults to 3.
+            entity_name_weight (float): The weight of the entity name, set to 0.6, indicating its
+                                     relative importance in the overall evaluation process.
+            entity_label_weight (float): The weight of the entity label, set to 0.4, reflecting its
+                                      secondary significance in the evaluation process.
         
         Returns:
             List[Relationship]: A list of curated Relationship instances after verification and correction.

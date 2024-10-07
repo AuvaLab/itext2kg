@@ -31,6 +31,10 @@ class iEntitiesExtractor():
         Args:
             context (str): The textual context from which entities will be extracted.
             max_tries (int): The maximum number of attempts to extract entities. Defaults to 5.
+            entity_name_weight (float): The weight of the entity name, set to 0.6, indicating its
+                                     relative importance in the overall evaluation process.
+            entity_label_weight (float): The weight of the entity label, set to 0.4, reflecting its
+                                      secondary significance in the evaluation process.
         
         Returns:
             List[Entity]: A list of extracted entities with embeddings.

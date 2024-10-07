@@ -54,9 +54,14 @@ class iText2KG:
                                          sections. A higher value indicates stricter matching. Default is 0.7.
         rel_threshold (float, optional): The threshold for relationship matching, used to merge relationships from 
                                          different sections. Default is 0.7.
+        entity_name_weight (float): The weight of the entity name, set to 0.6, indicating its
+                                     relative importance in the overall evaluation process.
+        entity_label_weight (float): The weight of the entity label, set to 0.4, reflecting its
+                                      secondary significance in the evaluation process.
         max_tries (int, optional): The maximum number of attempts to extract entities and relationships. Defaults to 5.
         max_tries_isolated_entities (int, optional): The maximum number of attempts to process isolated entities 
                                                      (entities without relationships). Defaults to 3.
+        
 
         Returns:
         KnowledgeGraph: A constructed knowledge graph consisting of the merged entities and relationships extracted 
