@@ -23,12 +23,15 @@ class Entity(BaseModel):
         self.label = re.sub(r'[^a-zA-Z0-9]', '_', self.label).replace("&", "and")
         self.name = self.name.lower().replace("_", " ").replace("-", " ").replace('"', " ").strip()
     
-    def embed_Entity(self, embeddings_function:Callable[[str], np.array])-> None:
+    def embed_Entity(self,
+                     embeddings_function:Callable[[str], np.array],
+                     entity_name_weight:float=0.6,
+                     entity_label_weight:float=0.4)-> None:
         self.process()
         self.properties.embeddings = (
-            0.6 * embeddings_function(self.name)
+            entity_name_weight * embeddings_function(self.name)
             +
-            0.4 * embeddings_function(self.label)
+            entity_label_weight * embeddings_function(self.label)
         )
         
     def __eq__(self, other) -> bool:
@@ -75,14 +78,17 @@ class KnowledgeGraph(BaseModel):
     entities:list[Entity]= []
     relationships:list[Relationship] = []
     
-    def embed_entities(self, embeddings_function:Callable[[str], np.array])-> None:
+    def embed_entities(self,
+                       embeddings_function:Callable[[str], np.array],
+                       entity_name_weight:float=0.6,
+                       entity_label_weight:float=0.4)-> None:
         self.remove_duplicates_entities()
         for Entity in self.entities:
             Entity.process()
         entities_embeddings = (
-            0.4 * embeddings_function([Entity.label for Entity in self.entities]) 
+            entity_label_weight * embeddings_function([Entity.label for Entity in self.entities]) 
             +  
-            0.6 * embeddings_function([Entity.name for Entity in self.entities])
+            entity_name_weight * embeddings_function([Entity.name for Entity in self.entities])
             )
         
         for Entity, embedding in zip(self.entities, entities_embeddings):
@@ -120,32 +126,6 @@ class KnowledgeGraph(BaseModel):
         This will update the `relationships` attribute by filtering out duplicates.
         """
         self.relationships = list(set(self.relationships))  # Using set to automatically remove duplicates based on hash and eq methods
-        
-    def find_relations_with_unprovided_entities(self) -> List[Relationship]:
-        relations_with_unprovided_entities = self.relationships.copy()
-        
-        for rel in self.relationships:
-            if rel.startEntity in self.entities and rel.endEntity in self.entities:
-                relations_with_unprovided_entities.remove(rel)
-        return relations_with_unprovided_entities
-    
-    def match_relationships_with_isolated_entities(self, 
-                                                   matcher_function:Callable[[Union[Entity, Relationship]],  Union[Entity, Relationship]], 
-                                                   embeddings_function:Callable[[str], np.array]):
-        for rel in self.relationships:
-            if rel.startEntity not in self.entities:
-                # Calculate embeddings for the isolated start Entity and find the closest match.
-                if not rel.startEntity.properties.embeddings :
-                    rel.startEntity.embed_Entity(embeddings_function=embeddings_function)
-                rel.startEntity = matcher_function(rel.startEntity)
-                
-            elif rel.endEntity not in self.entities:
-                # Calculate embeddings for the isolated start Entity and find the closest match.
-                if not rel.endEntity.properties.embeddings :
-                    rel.endEntity.embed_Entity(embeddings_function=embeddings_function)
-                rel.endEntity = matcher_function(rel.endEntity)
-
-        return self.relationships
     
     def find_isolated_entities(self):
         relation_entities = set(rel.startEntity for rel in self.relationships) | set(rel.endEntity for rel in self.relationships)

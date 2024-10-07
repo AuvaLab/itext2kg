@@ -27,20 +27,24 @@ class iRelationsExtractor:
                           context: str, 
                           entities: List[Entity], 
                           isolated_entities_without_relations: List[Entity] = None,
-                          max_tries:int=5, 
-                          ):
+                          max_tries:int=5,
+                          entity_name_weight:float=0.6,
+                          entity_label_weight:float=0.4,
+                          ) -> List[Relationship]:
         """
-        Extract relationships from a given context for specified entities and optionally add embeddings.
+        Extract relationships from a given context for specified entities and add embeddings. This method handles the invented entities.
         
         Args:
-        context (str): The textual context from which relationships will be extracted.
-        entities (List[str]): A list of relation names to be considered in the extraction.
-        embeddings (bool): A flag to determine whether to add embeddings to the extracted relationships.
-        property_name (str): The property name under which embeddings will be stored in the relationship.
-        relation_name_key (str): The key name for the relation's name in the relationship.
+            context (str): The textual context from which relationships will be extracted.
+            entities (List[Entity]): A list of Entity instances to be considered in the extraction.
+            isolated_entities_without_relations (List[Entity], optional): A list of entities without existing relationships to include in the extraction. Defaults to None.
+            max_tries (int): The maximum number of attempts to extract relationships. Defaults to 5.
         
         Returns:
-        List[dict]: A list of extracted relationships with optional embeddings.
+            List[Relationship]: A list of extracted Relationship instances with embeddings.
+        
+        Raises:
+            ValueError: If relationship extraction fails after multiple attempts.
         """
         # we would not give the LLM complex data structure as context to avoid the hallucination as much as possible
         entities_simplified = [(entity.name, entity.label) for entity in entities]
@@ -49,7 +53,8 @@ class iRelationsExtractor:
                         - Extract relationships between the provided entities based on the context.
                         - Adhere completely to the provided entities list.
                         - Do not change the name or label of the provided entities list.
-                        - Do not add any entity outside the provided list. 
+                        - Do not add any entity outside the provided list.
+                        - Avoid reflexive relations.
                         '''
                         
         if isolated_entities_without_relations:
@@ -57,10 +62,9 @@ class iRelationsExtractor:
             formatted_context = f"context :--\n'{context}'"
             IE_query = f'''
                     # Directives
-                    Based on the provided context, link the entities: \n {isolated_entities_without_relations_simplified} \n to the following entities: \n {entities_simplified}.
+                    - Based on the provided context, link the entities: \n {isolated_entities_without_relations_simplified} \n to the following entities: \n {entities_simplified}.
+                    - Avoid reflexive relations.
                     '''
-        
-        #invented_entities:List[Entity]= []
         tries = 0
         relationships = None
         curated_relationships:List[Relationship]= []
@@ -104,8 +108,12 @@ class iRelationsExtractor:
                 
             elif startEntity_in_input_entities is None and endEntity_in_input_entities is None:
                 print(f"[INFO][INVENTED ENTITIES] Aie; the entities {startEntity} and {endEntity} are invented. Solving them ...")
-                startEntity.embed_Entity(embeddings_function=self.langchain_output_parser.calculate_embeddings)
-                endEntity.embed_Entity(embeddings_function=self.langchain_output_parser.calculate_embeddings)
+                startEntity.embed_Entity(embeddings_function=self.langchain_output_parser.calculate_embeddings, 
+                                         entity_label_weight=entity_label_weight, 
+                                         entity_name_weight=entity_name_weight)
+                endEntity.embed_Entity(embeddings_function=self.langchain_output_parser.calculate_embeddings,
+                                       entity_label_weight=entity_label_weight,
+                                       entity_name_weight=entity_name_weight)
                 
                 startEntity = self.matcher.find_match(obj1=startEntity, list_objects=entities, threshold=0.5)
                 endEntity = self.matcher.find_match(obj1=endEntity, list_objects=entities, threshold=0.5)
@@ -116,7 +124,9 @@ class iRelationsExtractor:
                 
             elif startEntity_in_input_entities is None:
                 print(f"[INFO][INVENTED ENTITIES] Aie; the entities {startEntity} is invented. Solving it ...")
-                startEntity.embed_Entity(embeddings_function=self.langchain_output_parser.calculate_embeddings)
+                startEntity.embed_Entity(embeddings_function=self.langchain_output_parser.calculate_embeddings,
+                                         entity_label_weight=entity_label_weight,
+                                         entity_name_weight=entity_name_weight)
                 startEntity = self.matcher.find_match(obj1=startEntity, list_objects=entities, threshold=0.5)
                 
                 curated_relationships.append(Relationship(startEntity= startEntity, 
@@ -125,7 +135,9 @@ class iRelationsExtractor:
                 
             elif endEntity_in_input_entities is None:
                 print(f"[INFO][INVENTED ENTITIES] Aie; the entities {endEntity} is invented. Solving it ...")
-                endEntity.embed_Entity(embeddings_function=self.langchain_output_parser.calculate_embeddings)
+                endEntity.embed_Entity(embeddings_function=self.langchain_output_parser.calculate_embeddings,
+                                       entity_label_weight=entity_label_weight,
+                                       entity_name_weight=entity_name_weight)
                 endEntity = self.matcher.find_match(obj1=endEntity, list_objects=entities, threshold=0.5)
                 
                 curated_relationships.append(Relationship(startEntity= startEntity, 
@@ -142,23 +154,33 @@ class iRelationsExtractor:
     def extract_verify_and_correct_relations(self,
                           context: str, 
                           entities: List[Entity],
-                          rel_threshold:float = 0.8,
+                          rel_threshold:float = 0.7,
                           max_tries:int=5,
-                          max_tries_isolated_entities:int=3):
+                          max_tries_isolated_entities:int=3,
+                          entity_name_weight:float=0.6,
+                          entity_label_weight:float=0.4) -> List[Relationship]:
+        """
+        Extract, verify, and correct relationships between entities in the given context.
+
+        Args:
+            context (str): The textual context for extracting relationships.
+            entities (List[Entity]): A list of Entity instances to consider.
+            rel_threshold (float): The threshold for matching corrected relationships. Defaults to 0.7.
+            max_tries (int): The maximum number of attempts to extract relationships. Defaults to 5.
+            max_tries_isolated_entities (int): The maximum number of attempts to process isolated entities. Defaults to 3.
+        
+        Returns:
+            List[Relationship]: A list of curated Relationship instances after verification and correction.
+        """
         tries = 0
         isolated_entities_without_relations:List[Entity]= []
         curated_relationships = self.extract_relations(context=context,
                                                    entities=entities,
-                                                   max_tries=max_tries)
+                                                   max_tries=max_tries,
+                                                   entity_name_weight=entity_name_weight,
+                                                   entity_label_weight=entity_label_weight)
         
         # -------- Verification of isolated entities without relations and re-prompting the LLM accordingly-------- #   
-        """ start_entities = [relationship.startEntity for relationship in curated_relationships]
-        end_entities = [relationship.endEntity for relationship in curated_relationships]
-        
-        for entity in entities:
-            if entity not in start_entities or entity not in end_entities:
-                isolated_entities_without_relations.append(entity) """
-        
         isolated_entities_without_relations = KnowledgeGraph(entities=entities, 
                                                              relationships=curated_relationships).find_isolated_entities()
         
@@ -166,7 +188,9 @@ class iRelationsExtractor:
             print(f"[INFO][ISOLATED ENTITIES][TRY-{tries+1}] Aie; there are some isolated entities without relations {isolated_entities_without_relations}. Solving them ...")  
             corrected_relationships = self.extract_relations(context = context, 
                                 entities=isolated_entities_without_relations,
-                                isolated_entities_without_relations=isolated_entities_without_relations)
+                                isolated_entities_without_relations=isolated_entities_without_relations,
+                                entity_name_weight=entity_name_weight,
+                                entity_label_weight=entity_label_weight)
             matched_corrected_relationships, _ = self.matcher.process_lists(list1 = corrected_relationships, list2=curated_relationships, threshold=rel_threshold)
             curated_relationships.extend(matched_corrected_relationships)
                 

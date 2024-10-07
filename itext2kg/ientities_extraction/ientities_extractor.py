@@ -1,6 +1,6 @@
 from ..utils import LangchainOutputParser, EntitiesExtractor, DataHandler
 from ..models import Entity, KnowledgeGraph
-
+from typing import List
 class iEntitiesExtractor():
     """
     A class to extract entities from text using natural language processing tools and embeddings.
@@ -21,7 +21,10 @@ class iEntitiesExtractor():
         self.data_handler = DataHandler()
  
     
-    def extract_entities(self, context: str, max_tries:int=5):
+    def extract_entities(self, context: str, 
+                         max_tries:int=5,
+                         entity_name_weight:float=0.6,
+                         entity_label_weight:float=0.4) -> List[Entity]:
         """
         Extract entities from a given context.
         
@@ -38,12 +41,17 @@ class iEntitiesExtractor():
         """
         tries = 0
         entities = None
-        
+        IE_query  = '''
+        # DIRECTIVES : 
+        - Act like an experienced knowledge graph builder.
+        '''
  
         while tries < max_tries:
             try:
                 entities = self.langchain_output_parser.extract_information_as_json_for_context(
-                    context=context, output_data_structure=EntitiesExtractor
+                    context=context, 
+                    output_data_structure=EntitiesExtractor,
+                    IE_query=IE_query
                 )
 
                 if entities and "entities" in entities.keys():
@@ -57,12 +65,15 @@ class iEntitiesExtractor():
         if not entities or "entities" not in entities:
             raise ValueError("Failed to extract entities after multiple attempts.")
 
+        print (entities)
         entities = [Entity(label=entity["label"], name = entity["name"]) 
                     for entity in entities["entities"]]
-        
+        #print(entities)
         kg = KnowledgeGraph(entities = entities, relationships=[])
         kg.embed_entities(
-            embeddings_function=lambda x:self.langchain_output_parser.calculate_embeddings(x)
+            embeddings_function=lambda x:self.langchain_output_parser.calculate_embeddings(x),
+            entity_label_weight=entity_label_weight,
+            entity_name_weight=entity_name_weight
             )
         print(kg.entities)
         return kg.entities
