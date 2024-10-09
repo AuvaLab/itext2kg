@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - "main"
+      - "7-bug-in-itext2kgpy"
     paths:
       - "./itext2kg/utils/matcher.py"
       - "./itext2kg/ientities_extraction/**"
