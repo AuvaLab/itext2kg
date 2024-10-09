@@ -76,5 +76,5 @@ class iEntitiesExtractor():
             embeddings_function=lambda x:self.langchain_output_parser.calculate_embeddings(x),
             entity_label_weight=entity_label_weight,
             entity_name_weight=entity_name_weight
-            )
+            ) 
         return kg.entities
