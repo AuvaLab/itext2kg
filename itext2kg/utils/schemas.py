@@ -25,14 +25,13 @@ class InformationRetriever(BaseModel):
     
 # ----------------- Scientific Article ---------------- # 
 class Author(BaseModel):
-    name : str=Field(description="The name of the author")
-    affiliation: str = Field(description="The affiliation of the author")
+    name : str=Field(description="The name of the article's author. The right name should be near the article's title.")
+    affiliation: str = Field(description="The affiliation of the article's author")
     
 class ArticleDescription(BaseModel):
     title : str = Field(description="The title of the scientific article")
     authors : List[Author] = Field(description="The list of the article's authors and their affiliation")
     abstract:str = Field(description="Brief summary of the article's abstract")
-    key_findings:str = Field(description="The key findings of the article")
 
     
 class Article(BaseModel):
