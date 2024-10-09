@@ -1,5 +1,5 @@
 from typing import List
-from ..utils import LangchainOutputParser, RelationshipsExtractor, DataHandler, Matcher
+from ..utils import LangchainOutputParser, RelationshipsExtractor, Matcher
 from ..models import Entity, Relationship, KnowledgeGraph
 
 class iRelationsExtractor:
@@ -17,9 +17,7 @@ class iRelationsExtractor:
         """
         self.langchain_output_parser =  LangchainOutputParser(llm_model=llm_model,
                                                               embeddings_model=embeddings_model,
-                                                       sleep_time=sleep_time)  
-        
-        self.data_handler = DataHandler()
+                                                       sleep_time=sleep_time)
         self.matcher = Matcher()
     
     

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, SkipValidation
-from typing import Callable, List, Union
+from typing import Callable
 import numpy as np
 import re
 

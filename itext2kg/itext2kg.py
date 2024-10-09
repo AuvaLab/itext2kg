@@ -1,7 +1,7 @@
 from typing import List
 from .ientities_extraction import iEntitiesExtractor
 from .irelations_extraction import iRelationsExtractor
-from .utils import Matcher, DataHandler, LangchainOutputParser
+from .utils import Matcher, LangchainOutputParser
 from .models import KnowledgeGraph
 
 class iText2KG:
@@ -26,7 +26,6 @@ class iText2KG:
                                                         embeddings_model=embeddings_model,
                                                         sleep_time=sleep_time)
 
-        self.data_handler = DataHandler()
         self.matcher = Matcher()
         self.langchain_output_parser = LangchainOutputParser(llm_model=llm_model, embeddings_model=embeddings_model)
 
@@ -114,3 +113,4 @@ class iText2KG:
         constructed_kg.remove_duplicates_relationships()
          
         return constructed_kg
+    

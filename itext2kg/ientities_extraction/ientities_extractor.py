@@ -1,4 +1,4 @@
-from ..utils import LangchainOutputParser, EntitiesExtractor, DataHandler
+from ..utils import LangchainOutputParser, EntitiesExtractor
 from ..models import Entity, KnowledgeGraph
 from typing import List
 class iEntitiesExtractor():
@@ -17,9 +17,7 @@ class iEntitiesExtractor():
     
         self.langchain_output_parser =  LangchainOutputParser(llm_model=llm_model,
                                                               embeddings_model=embeddings_model,
-                                                       sleep_time=sleep_time)  
-        self.data_handler = DataHandler()
- 
+                                                       sleep_time=sleep_time) 
     
     def extract_entities(self, context: str, 
                          max_tries:int=5,
