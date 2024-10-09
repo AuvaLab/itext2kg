@@ -1,7 +1,7 @@
 from neo4j import GraphDatabase
 import numpy as np
 from typing import List
-
+from ..models import KnowledgeGraph
 class GraphIntegrator:
     """
     A class to integrate and manage graph data in a Neo4j database.
@@ -19,6 +19,7 @@ class GraphIntegrator:
         self.username = username
         self.password = password
         self.driver = self.connect()
+        
 
     def connect(self):
         """
@@ -73,65 +74,71 @@ class GraphIntegrator:
             return ""
         return np.array(embeddings.split(",")).astype(np.float64)
     
-    def create_nodes(self, json_graph:dict) -> List[str]:
+    def create_nodes(self, knowledge_graph:KnowledgeGraph) -> List[str]:
         """
-        Constructs Cypher queries for creating nodes in the graph database from a JSON structure.
+        Constructs Cypher queries for creating nodes in the graph database from a KnowledgeGraph object.
         
         Args:
-        json_graph (dict): A dictionary representing the nodes to be created.
+        knowledge_graph (KnowledgeGraph): The KnowledgeGraph object containing entities.
         
         Returns:
         List[str]: A list of Cypher queries for node creation.
         """
         queries = []
-        for node in json_graph["nodes"]:
+        for node in knowledge_graph.entities:
             properties = []
-            for prop, value in node["properties"].items():
+            for prop, value in node.properties.model_dump().items():
                 if prop == "embeddings":
                     value = GraphIntegrator.transform_embeddings_to_str_list(value)
                 properties.append(f'SET n.{prop.replace(" ", "_")} = "{value}"')
 
-            query = f'CREATE (n:{node["label"]} {{name: "{node["name"]}"}}) ' + ' '.join(properties)
+            query = f'CREATE (n:{node.label} {{name: "{node.name}"}}) ' + ' '.join(properties)
             queries.append(query)
         return queries
 
-    def create_relationships(self, json_graph:dict) -> list:
+    def create_relationships(self, knowledge_graph:KnowledgeGraph) -> list:
         """
-        Constructs Cypher queries for creating relationships in the graph database from a JSON structure.
+        Constructs Cypher queries for creating relationships in the graph database from a KnowledgeGraph object.
         
         Args:
-        json_graph (dict): A dictionary representing the relationships to be created.
+        kg (KnowledgeGraph): The KnowledgeGraph object containing relationships.
         
         Returns:
         List[str]: A list of Cypher queries for relationship creation.
         """
         rels = []
-        for rel in json_graph["relationships"]:
+        for rel in knowledge_graph.relationships:
             property_statements = ' '.join(
-            [f'SET r.{key.replace(" ", "_")} = "{value}"' if key != "embeddings" else f'SET r.{key.replace(" ", "_")} = "{GraphIntegrator.transform_embeddings_to_str_list(value)}"' for key, value in rel.get("properties", {}).items()]
+            [f'SET r.{key.replace(" ", "_")} = "{value}"' 
+             if key != "embeddings" 
+             else f'SET r.{key.replace(" ", "_")} = "{GraphIntegrator.transform_embeddings_to_str_list(value)}"' 
+             for key, value in rel.properties.model_dump().items()]
             )
             
-            query = (f'MATCH (n {{name: "{rel["startNode"]}"}}), (m {{name: "{rel["endNode"]}"}}) '
-                     f'MERGE (n)-[r:{rel["name"]}]->(m) {property_statements}')
+            query = (
+                f'MATCH (n:{rel.startEntity.label} {{name: "{rel.startEntity.name}"}}), '
+                f'(m:{rel.endEntity.label} {{name: "{rel.endEntity.name}"}}) '
+                f'MERGE (n)-[r:{rel.name}]->(m) {property_statements}'
+            )
             rels.append(query)
             
         return rels
     
 
-    def visualize_graph(self, json_graph:dict) -> None:
+    def visualize_graph(self, knowledge_graph:KnowledgeGraph) -> None:
         """
-        Runs the necessary queries to visualize a graph structure from a JSON input.
+        Runs the necessary queries to visualize a graph structure from a KnowledgeGraph input.
         
         Args:
-        json_graph (dict): A dictionary containing the graph structure.
+        kg (KnowledgeGraph): The KnowledgeGraph object containing the graph structure.
         """
         self.connect()
 
         nodes, relationships = (
-            self.create_nodes(json_graph=json_graph),
-            self.create_relationships(json_graph=json_graph),
+            self.create_nodes(knowledge_graph=knowledge_graph),
+            self.create_relationships(knowledge_graph=knowledge_graph),
         )
-
+        
         for node in nodes:
             self.run_query(node)
 

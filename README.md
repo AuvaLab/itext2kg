@@ -4,11 +4,11 @@
 ![GitHub forks](https://img.shields.io/github/forks/auvalab/itext2kg?style=social)
 [![Paper](https://img.shields.io/badge/Paper-View-green?style=flat&logo=adobeacrobatreader)](https://arxiv.org/abs/2409.03284)
 ![PyPI](https://img.shields.io/pypi/v/itext2kg)
-[![Demo](https://img.shields.io/badge/Demo-Available-blue)](./examples/different_llm_models.ipynb)
+[![Demo](https://img.shields.io/badge/Demo-Available-blue)](./examples/)
 ![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow)
 
 🎉 Accepted @ [WISE 2024](https://wise2024-qatar.com/)
-
+🚧 We are currently refactoring all the iText2KG code and adding new features for incremental KG construction. Please bear with us; we will release a much cleaner version in the coming days. In the meantime, feel free to try the demo above.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./docs/logo_white.png" width="300">
@@ -22,6 +22,12 @@
 iText2KG is a Python package designed to incrementally construct consistent knowledge graphs with resolved entities and relations by leveraging large language models for entity and relation extraction from text documents. It features zero-shot capability, allowing for knowledge extraction across various domains without specific training. The package includes modules for document distillation, entity extraction, and relation extraction, ensuring resolved and unique entities and relationships. It continuously updates the KG with new documents and integrates them into Neo4j for visual representation.
 
 ## 🔥 News
+* [07/10/2024] Latest features:
+  - The entire iText2KG code has been refactored by adding data models that describe an Entity, a Relation, and a KnowledgeGraph.
+  - Each entity is embedded using both its name and label to avoid merging concepts with similar names but different labels. For example, Python:Language and Python:Snake.
+    - The weights for entity name embedding and entity label are configurable, with defaults set to 0.4 for the entity label and 0.6 for the entity name.
+  - A max_tries parameter has been added to the iText2KG.build_graph function for entity and relation extraction to prevent hallucinatory effects in structuring the output. Additionally, a max_tries_isolated_entities parameter has been added to the same method to handle hallucinatory effects when processing isolated entities.
+
 * [17/09/2024] Latest features: 
   - Now, iText2KG is compatible with all the chat/embeddings models supported by LangChain. For available chat models, refer to the options listed at: https://python.langchain.com/v0.2/docs/integrations/chat/. For embedding models, explore the choices at: https://python.langchain.com/v0.2/docs/integrations/text_embedding/.
 
@@ -190,7 +196,7 @@ itext2kg = iText2KG(llm_model = openai_llm_model, embeddings_model = openai_embe
 semantic_blocks = [f"{key} - {value}".replace("{", "[").replace("}", "]") for key, value in distilled_doc.items()]
 
 # Build the knowledge graph using the semantic sections.
-global_ent, global_rel = itext2kg.build_graph(sections=semantic_blocks)
+kg = itext2kg.build_graph(sections=semantic_blocks)
 
 ```
 
@@ -203,11 +209,13 @@ The Arguments of ```iText2KG```:
 The Argument of ```iText2KG``` method ```build_graph```:
 
 - `sections (List[str])`: A list of strings (semantic blocks) where each string represents a section of the document from which entities and relationships will be extracted.
-- `existing_global_entities (List[dict], optional)`: A list of existing global entities to match against the newly extracted entities. Each entity is represented as a dictionary.
-- `existing_global_relationships (List[dict], optional)`: A list of existing global relationships to match against the newly extracted relationships. Each relationship is represented as a dictionary.
 - `ent_threshold (float, optional)`: The threshold for entity matching, used to merge entities from different sections. Default is 0.7.
 - `rel_threshold (float, optional)`: The threshold for relationship matching, used to merge relationships from different sections. Default is 0.7.
-
+- `existing_knowledge_graph (KnowledgeGraph, optional)`: An existing knowledge graph to merge the newly extracted entities and relationships into. Default is None.
+- `entity_name_weight (float)`: The weight of the entity name in the entity embedding process. Default is 0.6.
+- `entity_label_weight (float)`: The weight of the entity label in the entity embedding process. Default is 0.4.
+- `max_tries (int, optional)`: The maximum number of attempts to extract entities and relationships. Defaults to 5.
+- `max_tries_isolated_entities (int, optional)`: The maximum number of attempts to process isolated entities  (entities without relationships). Defaults to 3.
 
 ## The ```GraphIntegrator```
 It integrates the extracted entities and relationships into a Neo4j graph database and provides a visualization of the knowledge graph. This module allows users to easily explore and analyze the structured data using Neo4j's graph capabilities.
@@ -215,16 +223,12 @@ It integrates the extracted entities and relationships into a Neo4j graph databa
 ```python
 from itext2kg.graph_integration import GraphIntegrator
 
-URI = "bolt://localhost:####"
-USERNAME = "####"
-PASSWORD = "####"
 
+URI = "bolt://localhost:7687"
+USERNAME = "neo4j"
+PASSWORD = "###"
 
-new_graph = {}
-new_graph["nodes"] = global_ent
-new_graph["relationships"] = global_rel
-
-GraphIntegrator(uri=URI, username=USERNAME, password=PASSWORD).visualize_graph(json_graph=new_graph)
+GraphIntegrator(uri=URI, username=USERNAME, password=PASSWORD).visualize_graph(knowledge_graph=kg)
 ```
 
 
