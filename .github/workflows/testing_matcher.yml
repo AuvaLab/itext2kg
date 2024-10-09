@@ -2,17 +2,17 @@ name: testing matcher algorithm
 on:
   pull_request:
     paths:
-      - "../../itext2kg/utils/matcher.py"
-      - "../../itext2kg/ientities_extraction/**"
-      - "../../itext2kg/irelations_extraction/**"
+      - "itext2kg/utils/matcher.py"
+      - "itext2kg/ientities_extraction/**"
+      - "itext2kg/irelations_extraction/**"
   push:
     branches:
       - "main"
       - "7-bug-in-itext2kgpy"
     paths:
-      - "../../itext2kg/utils/matcher.py"
-      - "../../itext2kg/ientities_extraction/**"
-      - "../../itext2kg/irelations_extraction/**"
+      - "itext2kg/utils/matcher.py"
+      - "itext2kg/ientities_extraction/**"
+      - "itext2kg/irelations_extraction/**"
 
 jobs:
   test:
