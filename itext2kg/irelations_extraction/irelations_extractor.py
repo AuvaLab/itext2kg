@@ -46,7 +46,7 @@ class iRelationsExtractor:
         relationships = self.langchain_output_parser.extract_information_as_json_for_context(output_data_structure = RelationshipsExtractor, context=formatted_context, IE_query=IE_query)
         print(relationships)
         
-        if "relationships" not in relationships.keys() or relationships == None:
+        if "relationships" not in relationships.keys() or relationships is None:
             print("we are retrying ....")
             self.extract_relations(context=context, entities=entities, embeddings=embeddings, property_name=property_name, relation_name_key=relation_name_key)
         if not entities:
@@ -83,7 +83,7 @@ class iRelationsExtractor:
         relationships = self.langchain_output_parser.extract_information_as_json_for_context(output_data_structure = RelationshipsExtractor, context=formatted_context, IE_query=IE_query)
         print(relationships)
         
-        if "relationships" not in relationships.keys() or relationships == None:
+        if "relationships" not in relationships.keys() or relationships is None:
             print("we are retrying ....")
             self.extract_relations_for_isolated_entities(context=context, isolated_entities=isolated_entities, embeddings=embeddings, property_name=property_name, entity_name_name=entity_name_key)
 
