@@ -2,7 +2,7 @@ from typing import List
 from ..utils import LangchainOutputParser
 
 
-class DocumentsDisiller:
+class DocumentsDistiller:
     """
     A class designed to distill essential information from multiple documents into a combined
     structure, using natural language processing tools to extract and consolidate information.
@@ -70,6 +70,6 @@ class DocumentsDisiller:
                     ), 
                 documents))
         
-        return DocumentsDisiller.__combine_dicts(output_jsons)
+        return DocumentsDistiller.__combine_dicts(output_jsons)
 
 

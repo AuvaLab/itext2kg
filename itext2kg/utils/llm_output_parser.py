@@ -1,4 +1,3 @@
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.exceptions import OutputParserException
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser

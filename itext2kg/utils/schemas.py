@@ -25,14 +25,13 @@ class InformationRetriever(BaseModel):
     
 # ----------------- Scientific Article ---------------- # 
 class Author(BaseModel):
-    name : str=Field(description="The name of the author")
-    affiliation: str = Field(description="The affiliation of the author")
+    name : str=Field(description="The name of the article's author. The right name should be near the article's title.")
+    affiliation: str = Field(description="The affiliation of the article's author")
     
 class ArticleDescription(BaseModel):
     title : str = Field(description="The title of the scientific article")
     authors : List[Author] = Field(description="The list of the article's authors and their affiliation")
     abstract:str = Field(description="Brief summary of the article's abstract")
-    key_findings:str = Field(description="The key findings of the article")
 
     
 class Article(BaseModel):
@@ -57,8 +56,8 @@ class EntitiesExtractor(BaseModel):
     entities : List[Entity] = Field("All the entities presented in the context. The entities should encode ONE concept.")
     
 class Relationship(BaseModel):
-    startNode: str = Field("The starting entity, which is present in the entities list.")
-    endNode: str = Field("The ending entity, which is present in the entities list.")
+    startNode: Entity = Field("The starting entity, which is present in the entities list.")
+    endNode: Entity = Field("The ending entity, which is present in the entities list.")
     name: str = Field("The predicate that defines the relationship between the two entities. This predicate should represent a single, semantically distinct relation.")
 
 class RelationshipsExtractor(BaseModel):
@@ -95,3 +94,42 @@ class CV(BaseModel):
     certifications: Optional[List[str]] = Field(None, description="List of certifications")
     languages: Optional[List[str]] = Field(None, description="List of languages known")
     volunteer_work: Optional[List[str]] = Field(None, description="List of volunteer work experiences")
+    
+# ---------------------------- News ------------------------------------- #
+
+class Fact(BaseModel):
+    statement: str = Field(description="A factual statement mentioned in the news article")
+    source: Optional[str] = Field(description="The source of the fact, if mentioned")
+    relevance: Optional[str] = Field(description="The relevance or importance of the fact to the overall article")
+
+class ArticleContent(BaseModel):
+    headline: str = Field(description="The title or headline of the news article")
+    subheading: Optional[str] = Field(description="The subheading or supporting title of the article")
+    facts: List[Fact] = Field(description="List of factual statements covered in the article")
+    keywords: List[str] = Field(description="List of keywords or topics covered in the article")
+    publication_date: str = Field(description="The publication date of the article")
+    location: Optional[str] = Field(description="The location relevant to the article")
+
+class NewsArticle(BaseModel):
+    title: str = Field(description="The title or headline of the news article")
+    author: Author = Field(description="The author of the article")
+    content: ArticleContent = Field(description="The body and details of the news article")
+
+# ---------------------------- Novels ------------------------------------- #
+class Character(BaseModel):
+    name: str = Field(description="The name of the character in the novel")
+    role: str = Field(description="The role of the character in the story, e.g., protagonist, antagonist, etc.")
+    description: Optional[str] = Field(description="A brief description of the character's background or traits")
+
+class PlotPoint(BaseModel):
+    chapter_number: int = Field(description="The chapter number where this event occurs")
+    event: str = Field(description="A significant event or plot point that occurs in the chapter")
+
+class Novel(BaseModel):
+    title: str = Field(description="The title of the novel")
+    author: str = Field(description="The author of the novel")
+    genre: str = Field(description="The genre of the novel")
+    characters: List[Character] = Field(description="The list of main characters in the novel")
+    plot_summary: str = Field(description="A brief summary of the overall plot")
+    key_plot_points: List[PlotPoint] = Field(description="Key plot points or events in the novel")
+    themes: Optional[List[str]] = Field(description="Main themes explored in the novel, e.g., love, revenge, etc.")
