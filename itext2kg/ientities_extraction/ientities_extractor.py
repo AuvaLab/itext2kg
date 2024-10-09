@@ -77,5 +77,4 @@ class iEntitiesExtractor():
             entity_label_weight=entity_label_weight,
             entity_name_weight=entity_name_weight
             )
-        print(kg.entities)
         return kg.entities
