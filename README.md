@@ -2,6 +2,7 @@
 
 ![GitHub stars](https://img.shields.io/github/stars/auvalab/itext2kg?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/auvalab/itext2kg?style=social)
+![PyPI](https://img.shields.io/pypi/dm/itext2kg)
 [![Paper](https://img.shields.io/badge/Paper-View-green?style=flat&logo=adobeacrobatreader)](https://arxiv.org/abs/2409.03284)
 ![PyPI](https://img.shields.io/pypi/v/itext2kg)
 [![Demo](https://img.shields.io/badge/Demo-Available-blue)](./examples/)
