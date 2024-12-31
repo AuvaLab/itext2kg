@@ -53,7 +53,7 @@ class Entity(BaseModel):
     name : str = Field("The specific name of the entity. It should represent a single, distinct concept and must not be an empty string. For example, if the entity is a 'Technique', the name could be 'Neural Networks'.")
     
 class EntitiesExtractor(BaseModel):
-    entities : List[Entity] = Field("All the entities presented in the context. The entities should encode ONE concept.")
+    entities : List[Entity] = Field("All the entities presented in the context. The entities should encode ONE concept. For grouped terms (e.g., '10 Technique Categories'), treat the whole phrase as one entity.")
     
 class Relationship(BaseModel):
     startNode: Entity = Field("The starting entity, which is present in the entities list.")

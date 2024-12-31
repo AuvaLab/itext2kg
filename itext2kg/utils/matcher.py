@@ -106,7 +106,7 @@ class Matcher:
                                                 rel_threshold: float = 0.8,
                                                 ent_threshold: float = 0.8
                                             ) -> Tuple[List[Entity], List[Relationship]]:
-        """
+        """ 
         Match two lists of entities (Entities) and update the relationships list accordingly.
         :param entities1: First list of entities to match.
         :param entities2: Second list of entities to match against.
