@@ -20,8 +20,8 @@ def process_pmid(pmid, pubtator_path, output_path, llm_model_name, embeddings_mo
     try:
         # Initialize LLM and Embeddings *inside* the worker process
         # Load context
-        llm = ChatOllama(model=llm_model_name, temperature=0, base_url="http://127.0.0.1:11434")
-        embeddings = OllamaEmbeddings(model=embeddings_model_name, base_url="http://127.0.0.1:1143")
+        llm = ChatOllama(model=llm_model_name, temperature=0, base_url="http://127.0.0.1:11441")
+        embeddings = OllamaEmbeddings(model=embeddings_model_name, base_url="http://127.0.0.1:11441")
         itext2kg = iText2KG(llm_model=llm, embeddings_model=embeddings)
         pubtator_file = f"{pubtator_path}/{pmid}.txt"
         pubtator_process = PubtatorProcessor(pubtator_file, llm)

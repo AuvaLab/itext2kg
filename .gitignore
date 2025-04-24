@@ -6,3 +6,4 @@ Data/
 Data_v2.tar.gz
 *.log
 *.pyc
+*.out

@@ -6,6 +6,8 @@ import openai
 from typing import Union, List
 import numpy as np
 import logging
+from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from langchain_openai import ChatOpenAI
 
 class LangchainOutputParser:
     """
@@ -23,10 +25,29 @@ class LangchainOutputParser:
         temperature (float): The temperature setting for the Chat API's responses.
         sleep_time (int): The time to wait (in seconds) when encountering rate limits or errors.
         """
+        self.model = llm_model
+        
         #self.model = ChatOpenAI(api_key=api_key, model_name=model_name, temperature=temperature)
         #self.embeddings_model = OpenAIEmbeddings(model=embeddings_model_name, api_key=api_key)
-        
-        self.model = llm_model
+
+        # openai_api_key = "EMPTY"
+        # openai_api_base = "http://localhost:8000/v1"
+
+        # self.model = ChatOpenAI(
+        #     api_key=openai_api_key,
+        #     base_url=openai_api_base,
+        #     model = "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        #     temperature=0,
+            
+        # )
+        # self.model = ChatNVIDIA(
+        #     model="deepseek-ai/deepseek-r1",
+        #     api_key="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", 
+        #     temperature=0,
+        #     top_p=0.7,
+        #     max_tokens=4096,
+        #     )
+
         self.embeddings_model = embeddings_model
         self.sleep_time = sleep_time
 

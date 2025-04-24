@@ -1,7 +1,6 @@
 from typing import List
 from ..utils import LangchainOutputParser
-
-
+from langchain_openai import ChatOpenAI
 class DocumentsDistiller:
     """
     A class designed to distill essential information from multiple documents into a combined
@@ -14,7 +13,19 @@ class DocumentsDistiller:
         Args:
         llm_model: The language model instance to be used for generating semantic blocks.
         """
-        self.langchain_output_parser = LangchainOutputParser(llm_model=llm_model, embeddings_model=None)
+        # openai_api_key = "EMPTY"
+        # openai_api_base = "http://localhost:8000/v1"
+
+        # self.model = ChatOpenAI(
+        #     api_key=openai_api_key,
+        #     base_url=openai_api_base,
+        #     model = "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        #     temperature=0,
+            
+        # )
+        
+        self.model = llm_model
+        self.langchain_output_parser = LangchainOutputParser(llm_model=self.model, embeddings_model=None)
     
     @staticmethod
     def __combine_dicts(dict_list:List[dict]):

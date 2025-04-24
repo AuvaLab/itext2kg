@@ -21,7 +21,8 @@ class iEntitiesExtractor():
                                                               embeddings_model=embeddings_model,
                                                        sleep_time=sleep_time) 
     
-    def extract_entities(self, context: str, 
+    def extract_entities(self, 
+                         context: str, 
                          entities_info:dict=None,
                          max_tries:int=5,
                          entity_name_weight:float=0.6,
@@ -49,7 +50,7 @@ class iEntitiesExtractor():
         IE_query  = '''
         # DIRECTIVES : 
         - Act like an experienced knowledge graph builder.
-        '''
+        # '''
  
         while tries < max_tries:
             try:
@@ -68,11 +69,36 @@ class iEntitiesExtractor():
             tries += 1
     
         if not entities or "entities" not in entities:
-            raise ValueError("Failed to extract entities after multiple attempts.")
-
-        raw_entities = entities["entities"]
+            logging.info("Failed to extract entities after multiple attempts.")
+            # raise ValueError("Failed to extract entities after multiple attempts.")
+        
+        # logging.info(f'entities_info: {entities_info}')
+        if not entities or "entities" not in entities:
+            raw_entities = []
+            for enti_name, info in entities_info.items():
+                # logging.info(enti_name)
+                if enti_name == "abstract":
+                    pass
+                elif 'unique_id' in info.keys():
+                    raw_entities.append({
+                        "name":enti_name,
+                        "label":info['label'],
+                        "properties": {'unique_id':info['unique_id']}
+                        }
+                    )
+                else:
+                    raw_entities.append({
+                        "name":enti_name,
+                        "label":info['label'],
+                        "properties": {}
+                        }
+                    )
+            logging.info(raw_entities)
+        else:
+            raw_entities = entities["entities"]
+            entities_info = {key.lower(): value for key, value in entities_info.items()}
+        
         entities_info_list = []
-        entities_info = {key.lower(): value for key, value in entities_info.items()}
         for entity in raw_entities:
             if entity['name'].lower() in entities_info.keys():
                 if 'unique_id' in entities_info[entity['name'].lower()].keys():
@@ -84,8 +110,10 @@ class iEntitiesExtractor():
                 
             entities_info_list.append(entity)
             
-        entities_info_list.append({'name':entities_info['abstract']['source'],'label':'abstract','properties':{'context':entities_info['abstract']['context']}})
-
+        # entities_info_list.append({'name':entities_info['abstract']['source'],'label':'abstract','properties':{'context':entities_info['abstract']['context']}})
+        
+        # logging.info(f'entities_info: {entities_info_list}')
+        entities = {}
         entities["entities"] = entities_info_list
         entities["entities"] = [entity for entity in entities["entities"]
                                 if entity["label"].lower() in [

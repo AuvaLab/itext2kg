@@ -20,6 +20,9 @@ class PubtatorProcessor:
         self.properties_info = self._construct_properties_info()
         self.block = self._contstruct_block()
 
+    def escape_curly_braces(self, text):
+        return text.replace("{", "{{").replace("}", "}}")
+
     def clean_string(self, s: str) -> str:
         """
         去除字符串中的双引号和特殊字符，仅保留字母、数字和空格。
@@ -40,9 +43,10 @@ class PubtatorProcessor:
                 text_line = f.readlines() # Strip AND filter out empty lines
 
             PMID = text_line[0].split('|')[0]
-            title = text_line[0].split('|')[-1]
-            abstract = self.clean_string(text_line[1].split('|')[-1])
-            context = f"Title: {title} Abstract: {abstract}."
+            title = self.escape_curly_braces(text_line[0].strip().split('|')[-1])
+            abstract = self.escape_curly_braces(text_line[1].strip().split('|')[-1])
+            # abstract = self.clean_string(text_line[1].split('|')[-1])
+            context = f"Title: {title} Abstract: {abstract}"
 
             pubtator_info = {}
             pubtator_distilled = {
@@ -59,8 +63,8 @@ class PubtatorProcessor:
             for entity_line in text_line[2:]:
                 entity_line = entity_line.strip().split("\t")
                 if len(entity_line) == 6:
-                    label = entity_line[4]
-                    name = entity_line[3]
+                    label = str(entity_line[4])
+                    name = str(entity_line[3])
                     if label == 'Gene':
                         unique_ID = f"Gene ID:{entity_line[5]}"
                     else:
@@ -77,8 +81,8 @@ class PubtatorProcessor:
                             seen_ids.add(name)
                     
                 elif len(entity_line) == 5 and entity_line[4] != 'Species':
-                    label = entity_line[4]
-                    name = entity_line[3]
+                    label = str(entity_line[4])
+                    name = str(entity_line[3])
                     if name not in seen_ids:
                         seen_ids.add(name)
                         if label.lower() not in pubtator_distilled:
@@ -114,6 +118,7 @@ class PubtatorProcessor:
                     - If an entity is not clearly mentioned in the context, leave it blank and do not infer or generate non-existent information.
                     - The output should only include the entities, excluding any non-entity content such as descriptive text or inferences.
                     """
+                
                 distilled = document_distiller.distill(documents=[self.context], IE_query=IE_query, output_data_structure=DiseaseArticle)  # self.context not global
                 # logging.info("Abstract distilled successfully.") #Log when its success
                 return self._add_missing_entities(self._match_distilled_to_context(distilled))  # Call with self.
@@ -146,7 +151,7 @@ class PubtatorProcessor:
     def _match_distilled_to_context(self, distilled):
         """Matches distilled information to the context."""
         distilled_ = {}
-        if distilled is None or distilled == {}:
+        if distilled is None or distilled == {} or not isinstance(distilled, dict):
             logging.info(f'distilled: {distilled}')
             return distilled_
         

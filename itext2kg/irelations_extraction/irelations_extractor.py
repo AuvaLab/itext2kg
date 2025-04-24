@@ -51,8 +51,9 @@ class iRelationsExtractor:
         """
         # we would not give the LLM complex data structure as context to avoid the hallucination as much as possible
         
-        entities_simplified = [(entity.name, entity.label) for entity in entities]
-        formatted_context = f"entities:--'{entities_simplified}'\n context: '{context}'"
+        # entities_simplified = [(entity.name, entity.label) for entity in entities]
+        entities_simplified = [f"{entity.label}:{entity.name}," for entity in entities]
+        formatted_context = f"entities:--'{'/t'.join(entities_simplified)}'\n context: '{context}'"
         IE_query = '''# Directives
                         - Extract relationships between the provided entities based on the context.
                         - identify all pairs of (startNode, EndNode) that are *clearly related* to each other.
@@ -100,15 +101,15 @@ class iRelationsExtractor:
         logging.info("[INFO] Verification of invented entities")
         
         
-        for entity in entities:
-            if entity.label == "abstract":
-                abstract_dis = {"startNode": {}, "endNode": {}, "name": "reported"}
-                abstract_dis["startNode"] = {"label": entity.label, "name": entity}
-                for disease in entities:
-                    if disease.label == "disease":
-                        abstract_dis["endNode"] = {"label": disease.label, "name": disease}
-                        relationships["relationships"].append(abstract_dis.copy())  
-                        abstract_dis["endNode"] = {}  
+        # for entity in entities:
+        #     if entity.label == "abstract":
+        #         abstract_dis = {"startNode": {}, "endNode": {}, "name": "reported"}
+        #         abstract_dis["startNode"] = {"label": entity.label, "name": entity}
+        #         for disease in entities:
+        #             if disease.label == "disease":
+        #                 abstract_dis["endNode"] = {"label": disease.label, "name": disease}
+        #                 relationships["relationships"].append(abstract_dis.copy())  
+        #                 abstract_dis["endNode"] = {}  
 
         
         for relationship in relationships["relationships"]:
