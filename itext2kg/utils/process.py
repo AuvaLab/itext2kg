@@ -110,15 +110,49 @@ class PubtatorProcessor:
         for attempt in range(MAX_RETRIES):
             try:
                 document_distiller = DocumentsDistiller(llm_model=self.llm_model)  # Pass in the LLM!
+                # IE_query = """
+                #     # DIRECTIVES:
+                #     - As an experienced information extractor, your task is to extract biological entities from the provided bioinformatics context.
+                #     - Only extract entities that are explicitly mentioned in the context; do not generate or create any new terms.
+                #     - Extracted entities may include, but are not limited to, gene names, protein names, disease names, biological processes, pathways, molecular interactions, and other key bioinformatics terms.
+                #     - If an entity is not clearly mentioned in the context, leave it blank and do not infer or generate non-existent information.
+                #     - The output should only include the entities, excluding any non-entity content such as descriptive text or inferences.
+                #     """
                 IE_query = """
-                    # DIRECTIVES:
-                    - As an experienced information extractor, your task is to extract biological entities from the provided bioinformatics context.
-                    - Only extract entities that are explicitly mentioned in the context; do not generate or create any new terms.
-                    - Extracted entities may include, but are not limited to, gene names, protein names, disease names, biological processes, pathways, molecular interactions, and other key bioinformatics terms.
-                    - If an entity is not clearly mentioned in the context, leave it blank and do not infer or generate non-existent information.
-                    - The output should only include the entities, excluding any non-entity content such as descriptive text or inferences.
-                    """
-                
+                You are tasked with extracting entities from given content and 
+                structure them into Entity objects. Here's the outline of what 
+                you need to do:
+
+                Content Extraction:
+                You should be able to process the input content and identify relevant entities 
+                mentioned within the text.
+
+                Entity Extraction:
+                For each distinct entity identified in the content, create an Entity object.
+                An Entity object should have a name (name) representing the canonical or 
+                representative name of the entity found in the text.
+                Each entity must also have a label (label) indicating its type. The **allowed labels** are strictly limited to the following list: 
+                `disease`, `gene`, `metabolite`, `protein`, `pathway`, `region`, `omics_type`, `expression_method`, `assay_group`, `processes`, `cell_types`.
+                You must determine the most appropriate label from this specific list based on the context.
+
+                Important:
+                Extract only the entities whose type belongs to the predefined list: `disease`, `gene`, `metabolite`, `protein`, `pathway`, `region`, `omics_type`, `expression_method`, `assay_group`, `processes`, `cell_types`.
+                Ensure the identified entities are relevant to the domain implied by the content.
+
+
+                Example Content:
+                "TNF-alpha plays a central role in the neuroinflammation observed in Alzheimer’s Disease. 
+                Anti-TNF therapies have shown potential to reduce delirium symptoms in elderly patients."
+
+                Entities:
+                Entity(name='TNF-alpha', label='protein')
+                Entity(name='Alzheimer's Disease', label='disease')
+                Entity(name='Gene expression', label='processes') # Assuming 'Gene expression' fits 'processes'
+                Entity(name='bulk RNA-seq', label='expression_method')
+                Entity(name='cortical regions', label='region')
+                Entity(name='metabolic pathways', label='pathway') # Example: Extracted phrase mapped to label
+                Entity(name='Primary neurons', label='cell_types')
+                """
                 distilled = document_distiller.distill(documents=[self.context], IE_query=IE_query, output_data_structure=DiseaseArticle)  # self.context not global
                 # logging.info("Abstract distilled successfully.") #Log when its success
                 return self._add_missing_entities(self._match_distilled_to_context(distilled))  # Call with self.
@@ -155,18 +189,33 @@ class PubtatorProcessor:
             logging.info(f'distilled: {distilled}')
             return distilled_
         
-        for key, value in distilled.items():
-            if value and value != []:
-                if isinstance(value, list):
+        # for key, value in distilled.items():
+        #     if value and value != []:
+        #         if isinstance(value, list):
+        #             distilled_[key] = []
+        #             for item in value:
+        #                 for k, v in item.items():
+        #                     if self.is_entity_in_context(v, self.context): #Now self.context
+        #                         distilled_[key].append({key: v})
+        #         else:
+        #             if self.is_entity_in_context(value, self.context): #Now self.context
+        #                 distilled_[key] = value
+        # return distilled_ #Return the new value!
+        # logging.info(f'distilled: {distilled}')
+
+        for sub_dict in distilled:
+            # {"name": "TNF-alpha", "label": "protein"}
+            if "name" in sub_dict and "label" in sub_dict:
+                key = sub_dict['label']
+                value = sub_dict['name']
+                if key not in distilled_:
                     distilled_[key] = []
-                    for item in value:
-                        for k, v in item.items():
-                            if self.is_entity_in_context(v, self.context): #Now self.context
-                                distilled_[key].append({key: v})
+                    if self.is_entity_in_context(value, self.context):
+                        distilled_[key].append({key: value})
                 else:
-                    if self.is_entity_in_context(value, self.context): #Now self.context
-                        distilled_[key] = value
+                    distilled_[key].append({key: value})
         return distilled_ #Return the new value!
+        
 
     def _add_missing_entities(self, abstract_distilled):
         """Compares abstract_distilled and pubtator_distilled and adds missing entities."""

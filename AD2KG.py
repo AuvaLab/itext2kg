@@ -3,9 +3,10 @@ import pickle
 import numpy as np
 import os
 from multiprocessing import Pool
-# Updated import path for newer langchain versions
-from langchain_community.chat_models import ChatOllama
-from langchain_community.embeddings import OllamaEmbeddings
+
+from langchain_ollama import OllamaEmbeddings
+from langchain_ollama import OllamaLLM
+
 from itext2kg.utils import PubtatorProcessor
 from itext2kg import iText2KG
 import multiprocessing
@@ -27,18 +28,18 @@ def process_pmid(pmid, pubtator_path, output_path, llm_model_name, embeddings_mo
         logging.info(f"Processing PMID {pmid} using default Ollama endpoint.")
 
 
-        # llm = ChatOllama(
+        # llm = OllamaLLM(
         #     model=llm_model_name,
         #     temperature=0
         #      # base_url removed
         # )
         openai_api_key = "EMPTY"
-        openai_api_base = "http://localhost:8000/v1"
+        openai_api_base = "http://localhost:8102/v1"
 
         llm = ChatOpenAI(
             api_key=openai_api_key,
             base_url=openai_api_base,
-            model = "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+            model = "/home/mindrank/.cache/huggingface/hub/models--Valdemardi--DeepSeek-R1-Distill-Qwen-32B-AWQ/snapshots/1de6a3f7b151f6ea0f6d42acb3566e094eb8a264",
             temperature=0,
             
         )
@@ -126,11 +127,10 @@ def main():
     data_path = "/home/mindrank/fuli/itext2kg/Data/AD_pubtabor"
     output_path = "/home/mindrank/fuli/itext2kg/output_kg/AD"
     embed_model = "nomic-embed-text:latest"
-    num_workers = 20
+    num_workers = 10
     llm_model = True
     logging.info(f"Using {num_workers} worker processes.")
     logging.info(f"Targeting default Ollama instance (usually http://127.0.0.1:11434).")
-
 
     # --- Prepare PMID List ---
     pmid_list = []

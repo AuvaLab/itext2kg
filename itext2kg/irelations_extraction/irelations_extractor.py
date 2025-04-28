@@ -52,18 +52,74 @@ class iRelationsExtractor:
         # we would not give the LLM complex data structure as context to avoid the hallucination as much as possible
         
         # entities_simplified = [(entity.name, entity.label) for entity in entities]
-        entities_simplified = [f"{entity.label}:{entity.name}," for entity in entities]
-        formatted_context = f"entities:--'{'/t'.join(entities_simplified)}'\n context: '{context}'"
-        IE_query = '''# Directives
-                        - Extract relationships between the provided entities based on the context.
-                        - identify all pairs of (startNode, EndNode) that are *clearly related* to each other.
-                        - relationship_description: explanation as to why you think the source entity and the target entity are related to each other
-                        - Adhere completely to the provided entities list.
-                        - Do not change the name or label of the provided entities list.
-                        - Do not add any entity outside the provided list.
-                        - Avoid reflexive relations.
-                        '''
-                        
+        entities_simplified = [f"entity(name={entity.name},label={entity.label})" for entity in entities]
+        formatted_context = f"entities\n'{'/n'.join(entities_simplified)}'\n context:\n'{context}'"
+        # IE_query = '''# Directives
+        #                 - Extract relationships between the provided entities based on the context.
+        #                 - identify all pairs of (startNode, EndNode) that are *clearly related* to each other.
+        #                 - relationship_description: explanation as to why you think the source entity and the target entity are related to each other
+        #                 - Adhere completely to the provided entities list.
+        #                 - Do not change the name or label of the provided entities list.
+        #                 - Do not add any entity outside the provided list.
+        #                 - Avoid reflexive relations.
+        #                 '''
+        IE_query = '''
+        You are tasked with extracting relationships from given content and 
+        structure them into Entity and Relationship objects. Here's the outline of what 
+        you need to do:
+
+        Content Extraction:
+        You should be able to process the input content and understand the entities 
+        provided below.
+        Entities are already identified for you — your task is to use these entities 
+        only to extract relationships.
+
+        Relationship Extraction:
+        You should identify relationships between the given nodes (Entities) based on the content.
+        For each relationship, create a Relationship object.
+        A Relationship object should have a startNode (startNode) and an end node (endNode) which 
+        are Entity objects representing the entities involved in the relationship.
+        Each relationship should also have a name (name), and additional properties if 
+        applicable (though typically just the name is needed based on the example).
+
+        Important:
+        All provided entities must be included in at least one relationship. Do not leave 
+        any entity unused.
+
+        Output Formatting:
+        The extracted relationships should be formatted as instances of the 
+        provided Relationship class, referencing the given Entity definitions for startNode and endNode.
+        Ensure that the extracted data adheres to the structure defined by the classes.
+        Output the structured data in a format that can be easily validated against 
+        the provided code.
+        Do not wrap the output in lists or dictionaries, provide only the 
+        Relationship objects with unique identifiers if applicable (though the example doesn't show unique IDs for relationships themselves).
+        Strictly follow the format provided in the example output, do not add any 
+        additional information.
+
+        Instructions for you:
+        Read the provided content and entities thoroughly.
+        Determine relationships between these entities and represent them as directed 
+        relationships.
+        Provide only the extracted relationships in the specified format below.
+
+        Example Content:
+        "TNF-alpha plays a central role in the neuroinflammation observed in Alzheimer’s Disease. 
+        Anti-TNF therapies have shown potential to reduce delirium symptoms in elderly patients."
+
+        Entities:
+        Entity(name='TNF-alpha', label='protein')
+        Entity(name='Alzheimer's Disease', label='disease')
+        Entity(name='delirium', label='disease')
+        Entity(name='Anti-TNF therapy', label='chemical')
+
+        Expected Output:
+        Relationships:
+        Relationship(startNode=Entity(name='TNF-alpha', label='protein'), endNode=Entity(name='Alzheimer's Disease', label='disease'), name='upregulates')
+        Relationship(startNode=Entity(name='Anti-TNF therapy', label='chemical'), endNode=Entity(name='delirium', label='disease'), name='treats')
+        '''
+        
+
         if isolated_entities_without_relations:
             isolated_entities_without_relations_simplified = [(entity.name, entity.label) for entity in isolated_entities_without_relations]
             formatted_context = f"context :'{context}'"

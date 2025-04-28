@@ -69,7 +69,7 @@ class iEntitiesExtractor():
             tries += 1
     
         if not entities or "entities" not in entities:
-            logging.info("Failed to extract entities after multiple attempts.")
+            logging.info(f"Failed to extract entities after multiple attempts.\n entities:{entities}")
             # raise ValueError("Failed to extract entities after multiple attempts.")
         
         # logging.info(f'entities_info: {entities_info}')

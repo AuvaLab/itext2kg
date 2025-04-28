@@ -25,21 +25,21 @@ class LangchainOutputParser:
         temperature (float): The temperature setting for the Chat API's responses.
         sleep_time (int): The time to wait (in seconds) when encountering rate limits or errors.
         """
-        self.model = llm_model
+        # self.model = llm_model
         
         #self.model = ChatOpenAI(api_key=api_key, model_name=model_name, temperature=temperature)
         #self.embeddings_model = OpenAIEmbeddings(model=embeddings_model_name, api_key=api_key)
 
-        # openai_api_key = "EMPTY"
-        # openai_api_base = "http://localhost:8000/v1"
+        openai_api_key = "EMPTY"
+        openai_api_base = "http://localhost:8102/v1"
 
-        # self.model = ChatOpenAI(
-        #     api_key=openai_api_key,
-        #     base_url=openai_api_base,
-        #     model = "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
-        #     temperature=0,
-            
-        # )
+        self.model = ChatOpenAI(
+            api_key=openai_api_key,
+            base_url=openai_api_base,
+            model = "/home/mindrank/.cache/huggingface/hub/models--Valdemardi--DeepSeek-R1-Distill-Qwen-32B-AWQ/snapshots/1de6a3f7b151f6ea0f6d42acb3566e094eb8a264",
+            temperature=0,
+        )
+        
         # self.model = ChatNVIDIA(
         #     model="deepseek-ai/deepseek-r1",
         #     api_key="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", 

@@ -170,16 +170,25 @@ class AbstractRegulation(BaseModel):
     regulation: Optional[str] = Field(None, description="The subject entity is the regulation name or regulator names, like myelination, inflammation, neuron survival")
 
 
+# class DiseaseArticle(BaseModel):
+#     disease: List[AbstractDisease] = Field(None, description="The list of diseases associated with the article.")
+#     gene: List[AbstractGene] = Field(None,description="The list of genes associated with the article.")
+#     metabolite: List[AbstractMetabolite] = Field(None, description="The list of metabolites associated with the article.")
+#     protein: List[AbstractGene] = Field(None, description="The list of proteins associated with the article.")
+#     pathway: List[AbstractPathway] = Field(...,description="List of pathways associated with the disease.")
+#     region: List[AbstractRegion] = Field(...,description="The list of regions associated with the article.")
+#     omics_type: Optional[str] = Field(None, description="The subject entity is one of transcriptomic, proteomic, or metabolomic.")
+#     expression_method: Optional[str] = Field(None, description="The subject entity is a technique used to measure gene expression levels, such as microarray, bulk RNA-seq, single-cell RNA-seq, or  qRT-PCR.")
+#     assay_group: Optional[str] = Field(None, description="The subject entity is a set of samples groups and control groups.")
+#     processes: List[AbstractProcesses] = Field(None, description="The list of biological processes associated with the article.")
+#     cell_types: List[AbstractCellType] = Field(None, description="The list of cell line names associated with the article.")
+#     # regulation: List[AbstractRegulation] = Field(None, description="The list of regulators names associated with the article.")
+
+class Entity(BaseModel):
+    name: str = Field(..., description="The extracted name of the entity.")
+    label: str = Field(..., description="The type/label assigned to the entity (e.g., 'disease', 'protein', 'gene').")
 class DiseaseArticle(BaseModel):
-    disease: List[AbstractDisease] = Field(None, description="The list of diseases associated with the article.")
-    gene: List[AbstractGene] = Field(None,description="The list of genes associated with the article.")
-    metabolite: List[AbstractMetabolite] = Field(None, description="The list of metabolites associated with the article.")
-    protein: List[AbstractGene] = Field(None, description="The list of proteins associated with the article.")
-    pathway: List[AbstractPathway] = Field(...,description="List of pathways associated with the disease.")
-    region: List[AbstractRegion] = Field(...,description="The list of regions associated with the article.")
-    omics_type: Optional[str] = Field(None, description="The subject entity is one of transcriptomic, proteomic, or metabolomic.")
-    expression_method: Optional[str] = Field(None, description="The subject entity is a technique used to measure gene expression levels, such as microarray, bulk RNA-seq, single-cell RNA-seq, or  qRT-PCR.")
-    assay_group: Optional[str] = Field(None, description="The subject entity is a set of samples groups and control groups.")
-    processes: List[AbstractProcesses] = Field(None, description="The list of biological processes associated with the article.")
-    cell_types: List[AbstractCellType] = Field(None, description="The list of cell line names associated with the article.")
-    # regulation: List[AbstractRegulation] = Field(None, description="The list of regulators names associated with the article.")
+    """
+    Represents all entities extracted from a single article.
+    """
+    entities: List[Entity] = Field(default_factory=list, description="A list of all entities identified in the article, each with a name and label.")
