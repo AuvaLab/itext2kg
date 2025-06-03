@@ -39,7 +39,7 @@ def process_pmid(pmid, pubtator_path, output_path, llm_model_name, embeddings_mo
         llm = ChatOpenAI(
             api_key=openai_api_key,
             base_url=openai_api_base,
-            model = "/home/mindrank/.cache/huggingface/hub/models--Valdemardi--DeepSeek-R1-Distill-Qwen-32B-AWQ/snapshots/1de6a3f7b151f6ea0f6d42acb3566e094eb8a264",
+            model = "/home/mindrank/.cache/huggingface/hub/models--deepseek-ai--DeepSeek-R1-Distill-Qwen-32B/snapshots/711ad2ea6aa40cfca18895e8aca02ab92df1a746",
             temperature=0,
             
         )
@@ -127,7 +127,7 @@ def main():
     data_path = "/home/mindrank/fuli/itext2kg/Data/AD_pubtabor"
     output_path = "/home/mindrank/fuli/itext2kg/output_kg/AD"
     embed_model = "nomic-embed-text:latest"
-    num_workers = 10
+    num_workers = 20
     llm_model = True
     logging.info(f"Using {num_workers} worker processes.")
     logging.info(f"Targeting default Ollama instance (usually http://127.0.0.1:11434).")
@@ -220,8 +220,7 @@ def main():
 
     # --- Run multiprocessing Pool ---
     logging.info(f"Starting processing {len(tasks)} PMIDs with {num_workers} workers...")
-    # Use imap_unordered with tqdm for progress display
-    # The worker function receives items from 'tasks' (which is pmid_list)
+
     with multiprocessing.Pool(num_workers) as pool:
         for _ in tqdm(pool.imap_unordered(process_func_with_fixed_args, tasks), total=len(tasks), desc="Processing PMIDs"):
             pass  # Result is not used, only iteration for progress bar

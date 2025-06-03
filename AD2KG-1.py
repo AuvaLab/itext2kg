@@ -20,18 +20,18 @@ def process_pmid(pmid, pubtator_path, output_path, llm_model_name, embeddings_mo
     Processes a single PMID.  Now takes model names instead of instances.
     """
     try:
-        llm = OllamaLLM(
-            model=llm_model_name, 
-            temperature=0, 
+        # llm = OllamaLLM(
+        #     model=llm_model_name, 
+        #     temperature=0, 
+        #     )
+        # llm.invoke('hi')
+        llm = True
+        embeddings = OllamaEmbeddings(
+            model=embeddings_model_name, 
             base_url="http://127.0.0.1:11443"
             )
-        llm = True
-        # embeddings = OllamaEmbeddings(
-        #     model=embeddings_model_name, 
-        #     base_url="http://127.0.0.1:11443"
-        #     )
         
-        llm.invoke('hi')
+        
         itext2kg = iText2KG(llm_model=llm, embeddings_model=embeddings)
         pubtator_file = f"{pubtator_path}/{pmid}.txt"
         pubtator_process = PubtatorProcessor(pubtator_file, llm)
@@ -85,7 +85,7 @@ def main():
         embeddings_model_name=embeddings_model_name
         ) 
     # Use imap_unordered with tqdm for progress display
-    with multiprocessing.Pool(2) as pool:
+    with multiprocessing.Pool(10) as pool:
         for _ in tqdm(pool.imap_unordered(process_func, pmid_list), total=len(pmid_list), desc="Processing PMIDs"):
             pass  # Result is not used, only iteration for progress bar
 

@@ -13,16 +13,16 @@ class DocumentsDistiller:
         Args:
         llm_model: The language model instance to be used for generating semantic blocks.
         """
-        # openai_api_key = "EMPTY"
-        # openai_api_base = "http://localhost:8000/v1"
+        openai_api_key = "EMPTY"
+        openai_api_base = "http://localhost:8000/v1"
 
-        # self.model = ChatOpenAI(
-        #     api_key=openai_api_key,
-        #     base_url=openai_api_base,
-        #     model = "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
-        #     temperature=0,
+        self.model = ChatOpenAI(
+            api_key=openai_api_key,
+            base_url=openai_api_base,
+            model = "/home/mindrank/.cache/huggingface/hub/models--deepseek-ai--DeepSeek-R1-Distill-Qwen-32B/snapshots/711ad2ea6aa40cfca18895e8aca02ab92df1a746",
+            temperature=0,
             
-        # )
+        )
         
         self.model = llm_model
         self.langchain_output_parser = LangchainOutputParser(llm_model=self.model, embeddings_model=None)
