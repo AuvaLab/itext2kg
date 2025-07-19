@@ -1,6 +1,9 @@
-from ..utils import LangchainOutputParser, EntitiesExtractor
-from ..models import Entity, KnowledgeGraph
+from itext2kg.llm_output_parsing.langchain_output_parser import LangchainOutputParser
+from itext2kg.models import Entity, KnowledgeGraph, EntitiesExtractor
+from itext2kg.logging_config import get_logger
 from typing import List
+
+logger = get_logger(__name__)
 class iEntitiesExtractor():
     """
     A class to extract entities from text using natural language processing tools and embeddings.
@@ -19,7 +22,7 @@ class iEntitiesExtractor():
                                                               embeddings_model=embeddings_model,
                                                        sleep_time=sleep_time) 
     
-    def extract_entities(self, context: str, 
+    async def extract_entities(self, context: str, 
                          max_tries:int=5,
                          entity_name_weight:float=0.6,
                          entity_label_weight:float=0.4) -> List[Entity]:
@@ -50,30 +53,32 @@ class iEntitiesExtractor():
  
         while tries < max_tries:
             try:
-                entities = self.langchain_output_parser.extract_information_as_json_for_context(
-                    context=context, 
+                entities_list = await self.langchain_output_parser.extract_information_as_json_for_context(
+                    contexts=[context], 
                     output_data_structure=EntitiesExtractor,
-                    IE_query=IE_query
+                    system_query=IE_query
                 )
 
-                if entities and "entities" in entities.keys():
-                    break
+                if entities_list and len(entities_list) > 0:
+                    entities = entities_list[0]  # Get the first (and only) result
+                    if hasattr(entities, 'entities'):
+                        break
                 
             except Exception as e:
-                print(f"Not Formatted in the desired format. Error occurred: {e}. Retrying... (Attempt {tries + 1}/{max_tries})")
+                logger.warning("Not Formatted in the desired format. Error occurred: %s. Retrying... (Attempt %d/%d)", e, tries + 1, max_tries)
 
             tries += 1
     
-        if not entities or "entities" not in entities:
+        if not entities or not hasattr(entities, 'entities'):
             raise ValueError("Failed to extract entities after multiple attempts.")
 
-        print (entities)
-        entities = [Entity(label=entity["label"], name = entity["name"]) 
-                    for entity in entities["entities"]]
-        #print(entities)
+        logger.debug("Extracted entities: %s", entities)
+        entities = [Entity(label=entity.label, name=entity.name) 
+                    for entity in entities.entities]
+        logger.debug("Parsed entities: %s", entities)
         kg = KnowledgeGraph(entities = entities, relationships=[])
-        kg.embed_entities(
-            embeddings_function=lambda x:self.langchain_output_parser.calculate_embeddings(x),
+        await kg.embed_entities(
+            embeddings_function=lambda x: self.langchain_output_parser.calculate_embeddings(x),
             entity_label_weight=entity_label_weight,
             entity_name_weight=entity_name_weight
             )
