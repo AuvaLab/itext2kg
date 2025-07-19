@@ -3,6 +3,7 @@
 ![GitHub stars](https://img.shields.io/github/stars/auvalab/itext2kg?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/auvalab/itext2kg?style=social)
 ![PyPI](https://img.shields.io/pypi/dm/itext2kg)
+![Total Downloads](https://img.shields.io/pepy/dt/itext2kg)
 [![Paper](https://img.shields.io/badge/Paper-View-green?style=flat&logo=adobeacrobatreader)](https://arxiv.org/abs/2409.03284)
 ![PyPI](https://img.shields.io/pypi/v/itext2kg)
 [![Demo](https://img.shields.io/badge/Demo-Available-blue)](./examples/)
@@ -23,6 +24,12 @@
 iText2KG is a Python package designed to incrementally construct consistent knowledge graphs with resolved entities and relations by leveraging large language models for entity and relation extraction from text documents. It features zero-shot capability, allowing for knowledge extraction across various domains without specific training. The package includes modules for document distillation, entity extraction, and relation extraction, ensuring resolved and unique entities and relationships. It continuously updates the KG with new documents and integrates them into Neo4j for visual representation.
 
 ## 🔥 News
+* [19/07/2025] Major Performance and Reliability Updates:
+  - **Asynchronous Architecture**: Complete migration to async/await patterns for all core methods (`build_graph`, `extract_entities`, `extract_relations`, etc.) enabling better performance and non-blocking I/O operations with LLM APIs.
+  - **Logging System**: Implemented comprehensive logging infrastructure to replace all print statements with structured, configurable logging (DEBUG, INFO, WARNING, ERROR levels) with timestamps and module identification.
+  - **Enhanced Batch Processing**: Improved efficiency through async batch processing for multiple document handling and LLM API calls.
+  - **Better Error Handling**: Enhanced error handling and retry mechanisms with proper logging for production environments.
+
 * [07/10/2024] Latest features:
   - The entire iText2KG code has been refactored by adding data models that describe an Entity, a Relation, and a KnowledgeGraph.
   - Each entity is embedded using both its name and label to avoid merging concepts with similar names but different labels. For example, Python:Language and Python:Snake.
@@ -44,10 +51,13 @@ iText2KG is a Python package designed to incrementally construct consistent know
 
 ## Installation
 
-To install iText2KG, ensure you have Python installed, then use pip to install
+To install iText2KG, ensure you have **Python 3.9 or higher** installed (required for async/await functionality), then use pip to install:
+
 ```bash
 pip install itext2kg
 ```
+
+**Note**: With the new async architecture (v19.07.2025+), all core methods now require `async`/`await`. See the [Migration Guide](#migration-to-async-api) for updating existing code.
 ## The Overall Architecture
 
 The ```iText2KG``` package consists of four main modules that work together to construct and visualize knowledge graphs from unstructured text. An overview of the overall architecture:
@@ -133,31 +143,38 @@ openai_embeddings_model = OpenAIEmbeddings(
 Example
 
 ```python
+import asyncio
 from itext2kg import DocumentDistiller
-# You can define a schema or upload some predefined ones.
-from itext2kg.utils import Article
+# You can define a schema or use the predefined ones from schemas.py
+from itext2kg.models.schemas import Article
 
-# Initialize the DocumentDistiller with llm model.
-document_distiller = DocumentDistiller(llm_model = openai_llm_model)
+async def main():
+    # Initialize the DocumentDistiller with llm model.
+    document_distiller = DocumentDistiller(llm_model = openai_llm_model)
 
-# List of documents to be distilled.
-documents = ["doc1", "doc2", "doc3"]
+    # List of documents to be distilled.
+    documents = ["doc1", "doc2", "doc3"]
 
-# Information extraction query.
-IE_query = '''
-# DIRECTIVES : 
-- Act like an experienced information extractor. 
-- You have a chunk of a scientific paper.
-- If you do not find the right information, keep its place empty.
-'''
+    # Information extraction query.
+    IE_query = '''
+    # DIRECTIVES : 
+    - Act like an experienced information extractor. 
+    - You have a chunk of a scientific paper.
+    - If you do not find the right information, keep its place empty.
+    '''
 
-# Distill the documents using the defined query and output data structure.
-distilled_doc = document_distiller.distill(documents=documents, IE_query=IE_query, output_data_structure=Article)
+    # Distill the documents using the defined query and output data structure.
+    # Note: distill() is now async and requires await
+    distilled_doc = await document_distiller.distill(documents=documents, IE_query=IE_query, output_data_structure=Article)
+    
+    return distilled_doc
 
+# Run the async function
+distilled_doc = asyncio.run(main())
 ```
 The schema depends on the user's specific requirements, as it outlines the essential components to extract or emphasize during the knowledge graph construction. Since there is no universal blueprint for all use cases, its design is subjective and varies by application or context. This flexibility is crucial to making the ```iText2KG``` method adaptable across a wide range of scenarios.
 
-You can define a custom schema using  ```pydantic```. Some example schemas are available in [utils](./itext2kg/utils/schemas.py). You can use these or create new ones depending on your use-case. 
+You can define a custom schema using  ```pydantic```. Some example schemas are available in [models/schemas.py](./itext2kg/models/schemas.py). You can use these or create new ones depending on your use-case. 
 
 
 ```python
@@ -188,17 +205,32 @@ The iText2KG module is the core component of the package, responsible for integr
 Although it is highly recommended to pass the documents through the ```Document Distiller``` module, it is not required for graph creation. You can directly pass your chunks into the ```build_graph``` function of the ```iText2KG``` class; however, your graph may contain some noisy information.
 
 ```python
+import asyncio
 from itext2kg import iText2KG
+from itext2kg.logging_config import setup_logging, get_logger
 
-# Initialize iText2KG with the llm model and embeddings model.
-itext2kg = iText2KG(llm_model = openai_llm_model, embeddings_model = openai_embeddings_model)
+# Optional: Configure logging
+setup_logging(level="INFO", log_file="itext2kg.log")
+logger = get_logger(__name__)
 
-# Format the distilled document into semantic sections.
-semantic_blocks = [f"{key} - {value}".replace("{", "[").replace("}", "]") for key, value in distilled_doc.items()]
+async def build_knowledge_graph():
+    # Initialize iText2KG with the llm model and embeddings model.
+    itext2kg = iText2KG(llm_model = openai_llm_model, embeddings_model = openai_embeddings_model)
 
-# Build the knowledge graph using the semantic sections.
-kg = itext2kg.build_graph(sections=semantic_blocks)
+    # Format the distilled document into semantic sections.
+    semantic_blocks = [f"{key} - {value}".replace("{", "[").replace("}", "]") for key, value in distilled_doc.items()]
 
+    logger.info("Starting knowledge graph construction...")
+    
+    # Build the knowledge graph using the semantic sections.
+    # Note: build_graph() is now async and requires await
+    kg = await itext2kg.build_graph(sections=semantic_blocks)
+    
+    logger.info("Knowledge graph construction completed successfully!")
+    return kg
+
+# Run the async function
+kg = asyncio.run(build_knowledge_graph())
 ```
 
 The Arguments of ```iText2KG```:
@@ -222,14 +254,86 @@ The Argument of ```iText2KG``` method ```build_graph```:
 It integrates the extracted entities and relationships into a Neo4j graph database and provides a visualization of the knowledge graph. This module allows users to easily explore and analyze the structured data using Neo4j's graph capabilities.
 
 ```python
-from itext2kg.graph_integration import GraphIntegrator
-
+from itext2kg.graph_integration import Neo4jStorage
 
 URI = "bolt://localhost:7687"
 USERNAME = "neo4j"
 PASSWORD = "###"
 
-GraphIntegrator(uri=URI, username=USERNAME, password=PASSWORD).visualize_graph(knowledge_graph=kg)
+# Note: Graph visualization remains synchronous
+graph_integrator = Neo4jStorage(uri=URI, username=USERNAME, password=PASSWORD)
+graph_integrator.visualize_graph(knowledge_graph=kg)
+```
+
+## Migration to Async API
+
+If you have existing synchronous code, here's how to migrate:
+
+### Before (Synchronous - Deprecated):
+```python
+from itext2kg import iText2KG
+
+itext2kg = iText2KG(llm_model, embeddings_model)
+kg = itext2kg.build_graph(sections=["text"])  # This will no longer work
+```
+
+### After (Asynchronous - Current):
+```python
+import asyncio
+from itext2kg import iText2KG
+
+async def main():
+    itext2kg = iText2KG(llm_model, embeddings_model)
+    kg = await itext2kg.build_graph(sections=["text"])
+    return kg
+
+kg = asyncio.run(main())
+```
+
+### Complete Example with Error Handling and Logging:
+```python
+import asyncio
+from itext2kg import iText2KG, DocumentDistiller
+from itext2kg.logging_config import setup_logging, get_logger
+
+# Configure logging
+setup_logging(level="INFO", console_output=True, log_file="knowledge_graph.log")
+logger = get_logger(__name__)
+
+async def process_documents_to_kg(documents, schema):
+    try:
+        # Initialize components
+        distiller = DocumentDistiller(llm_model=openai_llm_model)
+        itext2kg = iText2KG(llm_model=openai_llm_model, embeddings_model=openai_embeddings_model)
+        
+        # Step 1: Distill documents
+        logger.info("Starting document distillation...")
+        distilled_doc = await distiller.distill(
+            documents=documents, 
+            IE_query="Extract key information",
+            output_data_structure=schema
+        )
+        
+        # Step 2: Build knowledge graph
+        semantic_blocks = [f"{key} - {value}" for key, value in distilled_doc.items()]
+        logger.info("Building knowledge graph...")
+        kg = await itext2kg.build_graph(
+            sections=semantic_blocks,
+            ent_threshold=0.7,
+            rel_threshold=0.7
+        )
+        
+        logger.info("Successfully created knowledge graph with %d entities and %d relationships", 
+                   len(kg.entities), len(kg.relationships))
+        return kg
+        
+    except Exception as e:
+        logger.error("Failed to process documents: %s", e)
+        raise
+
+# Usage
+documents = ["Document content 1", "Document content 2"]
+kg = asyncio.run(process_documents_to_kg(documents, YourSchema))
 ```
 
 
