@@ -1,2 +1,2 @@
-from .graph_integrator import GraphIntegrator
-__all__ = ["GraphIntegrator"]
+from .neo4j_storage import Neo4jStorage
+__all__ = ["Neo4jStorage"]
