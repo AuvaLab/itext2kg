@@ -1,5 +1,5 @@
 from pydantic import BaseModel, SkipValidation
-from typing import Callable
+from typing import Callable, Awaitable
 import numpy as np
 import re
 
@@ -23,15 +23,17 @@ class Entity(BaseModel):
         self.label = re.sub(r'[^a-zA-Z0-9]', '_', self.label).replace("&", "and")
         self.name = self.name.lower().replace("_", " ").replace("-", " ").replace('"', " ").strip()
     
-    def embed_Entity(self,
-                     embeddings_function:Callable[[str], np.array],
-                     entity_name_weight:float=0.6,
-                     entity_label_weight:float=0.4)-> None:
+    async def embed_Entity(self,
+                           embeddings_function:Callable[[str], Awaitable[np.array]],
+                           entity_name_weight:float=0.6,
+                           entity_label_weight:float=0.4)-> None:
         self.process()
+        name_embedding = await embeddings_function(self.name)
+        label_embedding = await embeddings_function(self.label)
         self.properties.embeddings = (
-            entity_name_weight * embeddings_function(self.name)
+            entity_name_weight * name_embedding
             +
-            entity_label_weight * embeddings_function(self.label)
+            entity_label_weight * label_embedding
         )
         
     def __eq__(self, other) -> bool:
@@ -78,31 +80,34 @@ class KnowledgeGraph(BaseModel):
     entities:list[Entity]= []
     relationships:list[Relationship] = []
     
-    def embed_entities(self,
-                       embeddings_function:Callable[[str], np.array],
-                       entity_name_weight:float=0.6,
-                       entity_label_weight:float=0.4)-> None:
+    async def embed_entities(self,
+                             embeddings_function:Callable[[str], Awaitable[np.array]],
+                             entity_name_weight:float=0.6,
+                             entity_label_weight:float=0.4)-> None:
         self.remove_duplicates_entities()
         for Entity in self.entities:
             Entity.process()
+        
+        # Get embeddings for labels and names separately
+        labels_embeddings = await embeddings_function([Entity.label for Entity in self.entities])
+        names_embeddings = await embeddings_function([Entity.name for Entity in self.entities])
+        
         entities_embeddings = (
-            entity_label_weight * embeddings_function([Entity.label for Entity in self.entities]) 
+            entity_label_weight * labels_embeddings
             +  
-            entity_name_weight * embeddings_function([Entity.name for Entity in self.entities])
+            entity_name_weight * names_embeddings
             )
         
         for Entity, embedding in zip(self.entities, entities_embeddings):
             Entity.properties.embeddings = embedding
             
         
-    def embed_relationships(self, embeddings_function:Callable[[str], np.array])-> None:
+    async def embed_relationships(self, embeddings_function:Callable[[str], Awaitable[np.array]])-> None:
         self.remove_duplicates_relationships()
         for relationship in self.relationships:
             relationship.process()
         
-        relationships_embeddings = (
-            embeddings_function([relationship.name for relationship in self.relationships]) 
-            )
+        relationships_embeddings = await embeddings_function([relationship.name for relationship in self.relationships])
         
         for relationship, embedding in zip(self.relationships, relationships_embeddings):
             relationship.properties.embeddings = embedding

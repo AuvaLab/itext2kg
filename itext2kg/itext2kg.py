@@ -1,8 +1,12 @@
 from typing import List
 from .ientities_extraction import iEntitiesExtractor
 from .irelations_extraction import iRelationsExtractor
-from .utils import Matcher, LangchainOutputParser
+from .graph_matching import Matcher
+from .llm_output_parsing import LangchainOutputParser
 from .models import KnowledgeGraph
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
 
 class iText2KG:
     """
@@ -30,7 +34,7 @@ class iText2KG:
         self.langchain_output_parser = LangchainOutputParser(llm_model=llm_model, embeddings_model=embeddings_model)
 
 
-    def build_graph(self, 
+    async def build_graph(self, 
                     sections:List[str], 
                     existing_knowledge_graph:KnowledgeGraph=None, 
                     ent_threshold:float = 0.7, 
@@ -66,41 +70,41 @@ class iText2KG:
         KnowledgeGraph: A constructed knowledge graph consisting of the merged entities and relationships extracted 
                         from the text.
         """
-        print("[INFO] ------- Extracting Entities from the Document", 1)
-        global_entities = self.ientities_extractor.extract_entities(context=sections[0],
-                                                                    entity_name_weight= entity_name_weight,
-                                                                    entity_label_weight=entity_label_weight)
-        print("[INFO] ------- Extracting Relations from the Document", 1)
-        global_relationships = self.irelations_extractor.extract_verify_and_correct_relations(context=sections[0], 
-                                                                                              entities = global_entities, 
-                                                                                              rel_threshold=rel_threshold, 
-                                                                                              max_tries=max_tries, 
-                                                                                              max_tries_isolated_entities=max_tries_isolated_entities,
-                                                                                              entity_name_weight= entity_name_weight,
-                                                                                              entity_label_weight=entity_label_weight)
+        logger.info("------- Extracting Entities from the Document %d", 1)
+        global_entities = await self.ientities_extractor.extract_entities(context=sections[0],
+                                                                          entity_name_weight= entity_name_weight,
+                                                                          entity_label_weight=entity_label_weight)
+        logger.info("------- Extracting Relations from the Document %d", 1)
+        global_relationships = await self.irelations_extractor.extract_verify_and_correct_relations(context=sections[0], 
+                                                                                                     entities = global_entities, 
+                                                                                                     rel_threshold=rel_threshold, 
+                                                                                                     max_tries=max_tries, 
+                                                                                                     max_tries_isolated_entities=max_tries_isolated_entities,
+                                                                                                     entity_name_weight= entity_name_weight,
+                                                                                                     entity_label_weight=entity_label_weight)
         
                 
         for i in range(1, len(sections)):
-            print("[INFO] ------- Extracting Entities from the Document", i+1)
-            entities = self.ientities_extractor.extract_entities(context= sections[i],
-                                                                 entity_name_weight= entity_name_weight,
-                                                                 entity_label_weight=entity_label_weight)
+            logger.info("------- Extracting Entities from the Document %d", i+1)
+            entities = await self.ientities_extractor.extract_entities(context= sections[i],
+                                                                       entity_name_weight= entity_name_weight,
+                                                                       entity_label_weight=entity_label_weight)
             processed_entities, global_entities = self.matcher.process_lists(list1 = entities, list2=global_entities, threshold=ent_threshold)
             
-            print("[INFO] ------- Extracting Relations from the Document", i+1)
-            relationships = self.irelations_extractor.extract_verify_and_correct_relations(context= sections[i], 
-                                                                                           entities=processed_entities, 
-                                                                                           rel_threshold=rel_threshold,
-                                                                                           max_tries=max_tries, 
-                                                                                           max_tries_isolated_entities=max_tries_isolated_entities,
-                                                                                           entity_name_weight= entity_name_weight,
-                                                                                           entity_label_weight=entity_label_weight)
+            logger.info("------- Extracting Relations from the Document %d", i+1)
+            relationships = await self.irelations_extractor.extract_verify_and_correct_relations(context= sections[i], 
+                                                                                                  entities=processed_entities, 
+                                                                                                  rel_threshold=rel_threshold,
+                                                                                                  max_tries=max_tries, 
+                                                                                                  max_tries_isolated_entities=max_tries_isolated_entities,
+                                                                                                  entity_name_weight= entity_name_weight,
+                                                                                                  entity_label_weight=entity_label_weight)
             processed_relationships, _ = self.matcher.process_lists(list1 = relationships, list2=global_relationships, threshold=rel_threshold)
             
             global_relationships.extend(processed_relationships)
         
         if existing_knowledge_graph:
-            print(f"[INFO] ------- Matching the Document {1} Entities and Relationships with the Existing Global Entities/Relations")
+            logger.info("------- Matching the Document %d Entities and Relationships with the Existing Global Entities/Relations", 1)
             global_entities, global_relationships = self.matcher.match_entities_and_update_relationships(entities1=global_entities,
                                                                  entities2=existing_knowledge_graph.entities,
                                                                  relationships1=global_relationships,
