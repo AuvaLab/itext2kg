@@ -1,8 +1,13 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Tuple, Union
-from ..models import Entity, Relationship
-class Matcher:
+from itext2kg.models import Entity, Relationship
+from itext2kg.graph_matching.matcher_interface import GraphMatcherInterface
+from itext2kg.logging_config import get_logger
+
+logger = get_logger(__name__)
+
+class Matcher(GraphMatcherInterface):
     """
     Class to handle the matching and processing of entities or relations based on cosine similarity or name matching.
     """
@@ -38,12 +43,12 @@ class Matcher:
 
         if best_match:
             if isinstance(obj1, Relationship):
-                print(f"[INFO] Wohoo! Relation was matched --- [{obj1.name}] --merged --> [{best_match.name}] ")
+                logger.info("Relation was matched --- [%s] --merged --> [%s]", obj1.name, best_match.name)
                 obj1.name = best_match.name
                 obj1.properties.embeddings = best_match.properties.embeddings
                 
             elif isinstance(obj1, Entity):
-                print(f"[INFO] Wohoo! Entity was matched --- [{obj1.name}:{obj1.label}] --merged--> [{best_match.name}:{best_match.label}]")
+                logger.info("Entity was matched --- [%s:%s] --merged--> [%s:%s]", obj1.name, obj1.label, best_match.name, best_match.label)
                 return best_match
 
         return obj1
