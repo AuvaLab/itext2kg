@@ -1,5 +1,5 @@
 from typing import List
-from ..utils import LangchainOutputParser
+from itext2kg.llm_output_parsing.langchain_output_parser import LangchainOutputParser
 
 
 class DocumentsDistiller:
@@ -49,7 +49,7 @@ class DocumentsDistiller:
         return combined_dict
 
 
-    def distill(self, documents: List[str], output_data_structure, IE_query:str) -> dict:
+    async def distill(self, documents: List[str], output_data_structure, IE_query:str) -> dict:
         """
         Distill information from multiple documents based on a specific information extraction query.
         
@@ -61,14 +61,12 @@ class DocumentsDistiller:
         Returns:
         dict: A dictionary representing distilled information from all documents.
         """
-        output_jsons = list(
-            map(
-                lambda context: self.langchain_output_parser.extract_information_as_json_for_context(
-                    context = context, 
-                    IE_query=IE_query, 
-                    output_data_structure= output_data_structure
-                    ), 
-                documents))
+        # Use the batch processing capability of the async method
+        output_jsons = await self.langchain_output_parser.extract_information_as_json_for_context(
+            contexts=documents, 
+            system_query=IE_query, 
+            output_data_structure=output_data_structure
+        )
         
         return DocumentsDistiller.__combine_dicts(output_jsons)
 
