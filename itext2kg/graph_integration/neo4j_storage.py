@@ -226,13 +226,10 @@ class Neo4jStorage:
         """
         nodes = self.create_nodes(knowledge_graph=knowledge_graph)
         relationships = self.create_relationships(knowledge_graph=knowledge_graph)
-        has_entity_relationships = self.create_has_entity_relationships(knowledge_graph=knowledge_graph, parent_node_type=parent_node_type)
         
         for node_query in nodes:
             self.run_query(node_query)
 
         for rel_query in relationships:
             self.run_query(rel_query)
-            
-        for has_entity_query in has_entity_relationships:
-            self.run_query(has_entity_query)
+
