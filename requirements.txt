@@ -1,11 +1,34 @@
-langchain==0.3.0
-langchain-core==0.3.0
-langchain-openai==0.2.0
-neo4j==5.24.0
-numpy 
-openai==1.45.0
-openpyxl==3.1.5
-pydantic-settings==2.5.2
-scikit-learn==1.5.2
-pypdf==4.3.1
-pytest==8.2.2
+# =============================================================================
+# iText2KG Requirements
+# =============================================================================
+
+# Core LangChain packages 
+langchain~=0.3.26
+langchain-core~=0.3.69
+langchain-openai~=0.2.0
+
+# Database and API clients
+neo4j>=5.28.0,<6.0.0
+openai>=1.97.0,<2.0.0
+
+# Data processing and scientific computing
+numpy>=2.3.0,<3.0.0
+scikit-learn>=1.7.0,<2.0.0
+
+# Document processing and data handling
+openpyxl>=3.1.0,<4.0.0
+pypdf>=4.3.0,<5.0.0
+
+# AI/ML utilities and tokenization
+tiktoken>=0.8.0,<1.0.0
+
+# Date and time parsing
+python-dateutil>=2.8.0,<3.0.0
+
+# Validation and configuration management
+pydantic>=2.11.0,<3.0.0
+pydantic-settings>=2.6.0,<3.0.0
+
+# Testing framework (development dependency)
+pytest>=8.4.0,<9.0.0
+pytest-asyncio>=1.1.0,<2.0.0

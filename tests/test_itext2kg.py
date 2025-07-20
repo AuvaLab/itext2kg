@@ -1,8 +1,9 @@
 import pytest
 import pickle
+import asyncio
 from unittest.mock import patch, MagicMock
 from itext2kg import iText2KG
-from itext2kg.utils import Matcher
+from itext2kg.graph_matching import Matcher
 import os
 
 
@@ -32,7 +33,8 @@ def itext2kg():
     # Return the iText2KG instance
     return iText2KG(llm_model=llm_model, embeddings_model=embeddings_model)
 
-def test_build_graph_multiple_sections_merge(itext2kg):
+@pytest.mark.asyncio
+async def test_build_graph_multiple_sections_merge(itext2kg):
     """Test build_graph method for multiple sections with merging entities and relationships."""
     
     # Mock the entity extraction for two sections
@@ -42,7 +44,7 @@ def test_build_graph_multiple_sections_merge(itext2kg):
             
                 
                 # Call the method under test
-                result_graph = itext2kg.build_graph(sections=[
+                result_graph = await itext2kg.build_graph(sections=[
                     "Elon Musk is the CEO of SpaceX. Tesla produces electric cars.",
                     "Elon Musk leads SpaceX as its chief executive officer. Tesla Inc. manufactures electric vehicles."
                 ], rel_threshold = 0.6)

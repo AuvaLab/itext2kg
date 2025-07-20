@@ -1,4 +1,3 @@
-from itext2kg.utils import Matcher
-from itext2kg import iText2KG
+from itext2kg.graph_matching import Matcher
 
-__all__ = ["Matcher", "iText2KG"]
+__all__ = ['Matcher']
