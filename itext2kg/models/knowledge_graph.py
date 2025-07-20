@@ -2,6 +2,8 @@ from pydantic import BaseModel, SkipValidation
 from typing import Callable, Awaitable
 import numpy as np
 import re
+from datetime import datetime
+from dateutil.parser import parse as parse_date
 
 class EntityProperties(BaseModel):
     embeddings: SkipValidation[np.array]=None
@@ -10,6 +12,7 @@ class EntityProperties(BaseModel):
         
 class RelationshipProperties(BaseModel):
     embeddings:SkipValidation[np.array]=None
+    observation_dates:list[str]=[]
     class Config:
         arbitrary_types_allowed = True
     
@@ -60,6 +63,9 @@ class Relationship(BaseModel):
     def embed_relationship(self, embeddings_function:Callable[[str], np.array]):
         self.process()
         self.properties.embeddings = embeddings_function(self.name)
+    
+    def combine_observation_dates(self, observation_dates:list[str])-> None:
+        self.properties.observation_dates.extend(observation_dates)
         
     def __eq__(self, other) -> bool:
         if isinstance(other, Relationship):
@@ -117,7 +123,24 @@ class KnowledgeGraph(BaseModel):
             if entity == other_entity : 
                 return entity
         return None
+    
+    def get_relationship(self, other_relationship:Relationship):
+        for relationship in self.relationships:
+            if relationship == other_relationship:
+                return relationship
+        return None
+    
+    def add_observation_dates(self, observation_date: str) -> None:
+        if not observation_date or observation_date.strip() == "":
+            return None
         
+        parsed_date = parse_date(observation_date.strip())
+        timestamp = parsed_date.timestamp()
+        
+        for relationship in self.relationships:
+            relationship.properties.observation_dates.append(timestamp)
+    
+    
     def remove_duplicates_entities(self) -> None:
         """
         Remove duplicate entities (entities) by relying on the `__hash__` and `__eq__` methods of the `Entity` class.
