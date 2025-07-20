@@ -43,6 +43,7 @@ class iText2KG:
                     max_tries_isolated_entities:int=3,
                     entity_name_weight:float=0.6,
                     entity_label_weight:float=0.4,
+                    observation_date:str=""
                     ) -> KnowledgeGraph:
         """
         Builds a knowledge graph from text by extracting entities and relationships, then integrating them into a structured graph.
@@ -81,7 +82,8 @@ class iText2KG:
                                                                                                      max_tries=max_tries, 
                                                                                                      max_tries_isolated_entities=max_tries_isolated_entities,
                                                                                                      entity_name_weight= entity_name_weight,
-                                                                                                     entity_label_weight=entity_label_weight)
+                                                                                                     entity_label_weight=entity_label_weight,
+                                                                                                     observation_date=observation_date)
         
                 
         for i in range(1, len(sections)):
@@ -98,7 +100,8 @@ class iText2KG:
                                                                                                   max_tries=max_tries, 
                                                                                                   max_tries_isolated_entities=max_tries_isolated_entities,
                                                                                                   entity_name_weight= entity_name_weight,
-                                                                                                  entity_label_weight=entity_label_weight)
+                                                                                                  entity_label_weight=entity_label_weight,
+                                                                                                  observation_date=observation_date)
             processed_relationships, _ = self.matcher.process_lists(list1 = relationships, list2=global_relationships, threshold=rel_threshold)
             
             global_relationships.extend(processed_relationships)

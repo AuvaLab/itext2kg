@@ -154,8 +154,8 @@ class iRelationsExtractor:
                                       name = relationship.name))
         
         kg = KnowledgeGraph(relationships = curated_relationships, entities=entities)
-        kg.embed_relationships(
-            embeddings_function=lambda x:self.langchain_output_parser.calculate_embeddings(x)
+        await kg.embed_relationships(
+            embeddings_function=lambda x: self.langchain_output_parser.calculate_embeddings(x)
             )
         return kg.relationships
     
@@ -167,7 +167,8 @@ class iRelationsExtractor:
                           max_tries:int=5,
                           max_tries_isolated_entities:int=3,
                           entity_name_weight:float=0.6,
-                          entity_label_weight:float=0.4) -> List[Relationship]:
+                          entity_label_weight:float=0.4,
+                          observation_date:str="") -> List[Relationship]:
         """
         Extract, verify, and correct relationships between entities in the given context.
 
@@ -209,4 +210,7 @@ class iRelationsExtractor:
                 
             isolated_entities_without_relations = KnowledgeGraph(entities=entities, relationships=corrected_relationships).find_isolated_entities()
             tries += 1
-        return curated_relationships
+            
+        temp_kg = KnowledgeGraph(relationships=curated_relationships)
+        temp_kg.add_observation_dates(observation_date=observation_date)
+        return temp_kg.relationships

@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Tuple, Union
-from itext2kg.models import Entity, Relationship
+from itext2kg.models import Entity, Relationship, KnowledgeGraph
 from itext2kg.graph_matching.matcher_interface import GraphMatcherInterface
 from itext2kg.logging_config import get_logger
 
@@ -136,6 +136,10 @@ class Matcher(GraphMatcherInterface):
         def update_relationships(relationships: List[Relationship]) -> List[Relationship]:
             updated_relationships = []
             for rel in relationships:
+                tem_kg = KnowledgeGraph(relationships=relationships2)
+                rel2 = tem_kg.get_relationship(rel)
+                if rel2:
+                    rel.combine_observation_dates(rel2.properties.observation_dates)
                 updated_rel = rel.model_copy()  # Create a copy to modify
                 # Update the 'startEntity' and 'endEntity' names with matched entity names
                 if rel.startEntity in entity_name_mapping:
