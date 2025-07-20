@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 
@@ -133,3 +133,59 @@ class Novel(BaseModel):
     plot_summary: str = Field(description="A brief summary of the overall plot")
     key_plot_points: List[PlotPoint] = Field(description="Key plot points or events in the novel")
     themes: Optional[List[str]] = Field(description="Main themes explored in the novel, e.g., love, revenge, etc.")
+
+# ---------------------------- Facts ------------------------------------- #
+
+class Facts(BaseModel):
+    facts: list[str] = Field(
+        description="""
+        **Guidelines for Generating Facts**:
+
+        1. **Facts**:
+           - Extract the facts from the text.
+           - Convert compound or complex sentences into short, single-fact statements.
+           - Each Fact must contain exactly one piece of information or relationship.
+           - Ensure that each Fact is expressed directly and concisely, without redundancies or duplicating the same information across multiple statements.
+           
+        2. **Decontextualization**:
+           - Replace pronouns (e.g., "it," "he," "they") with the full entity name or a clarifying noun phrase.
+           - Include any necessary modifiers so that each Fact is understandable in isolation.
+
+        3. **Temporal Context**:
+           - If the text contains explicit time references (e.g., "in 1995," "next Tuesday," "during the 20th century"), 
+             include them in the Fact so it is clear when the statement was or will be true.
+           - Position the time reference in a natural place within the Fact.
+           - If a sentence references multiple distinct times, split it into separate Facts as needed.
+
+        4. **Accuracy & Completeness**:
+           - Preserve the original meaning without combining multiple facts into a single statement.
+           - Avoid adding details not present in the source text.
+
+        5.  **End Actions**:
+           - If the text indicates the end of a role or an action (for example, someone leaving a position),
+             be explicit about the role/action and the time it ended.
+        
+        **Redundancies**:
+        - Eliminate redundancies by simplifying phrases (e.g., convert "the method is crucial for maintaining X" into "the method maintains X").
+        
+        **Example**:
+        -During the height of the Cold War, the Apollo 11 mission, which was launched by NASA from Kennedy Space Center on July 16, 1969, successfully landed the first two humans, Neil Armstrong and Buzz Aldrin, on the Moon on July 20, 1969, a monumental achievement that was watched by millions worldwide and effectively ended the Space Race between the United States and the Soviet Union.
+        Facts:[
+        "The Apollo 11 mission was launched by NASA.",
+        "The Apollo 11 mission was launched from Kennedy Space Center.",
+        "The Apollo 11 mission was launched on July 16, 1969.",
+        "The Apollo 11 mission landed the first two humans on the Moon.",
+        "Neil Armstrong was one of the first two humans to land on the Moon.",
+        "Buzz Aldrin was one of the first two humans to land on the Moon.",
+        "The Moon landing occurred on July 20, 1969.",
+        "The Apollo 11 mission's success effectively ended the Space Race.",
+        "The Space Race was between the United States and the Soviet Union."
+        ]
+        """
+    )
+    @field_validator('facts', mode='before')
+    @classmethod
+    def validate_facts(cls, v):
+        if isinstance(v, str):
+            return [v]  # Convert single string to list
+        return v  # Return as-is if already a list
