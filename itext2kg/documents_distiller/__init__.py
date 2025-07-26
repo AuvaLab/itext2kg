@@ -1,10 +1,10 @@
 from .documents_distiller import DocumentsDistiller
-from ..models.schemas import InformationRetriever, EntitiesExtractor, RelationshipsExtractor, Article, CV
+from ..models.schemas import InformationRetriever, RelationshipsExtractor, Article, CV, EntitiesExtractor
 __all__ = ["DocumentsDistiller",
            "DataHandler",
-           "InformationRetriever", 
-           "EntitiesExtractor", 
+           "InformationRetriever",  
            "RelationshipsExtractor", 
            "Article", 
-           "CV"
+           "CV",
+           "EntitiesExtractor"
            ]

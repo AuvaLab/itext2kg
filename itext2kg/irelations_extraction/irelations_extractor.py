@@ -54,9 +54,9 @@ class iRelationsExtractor:
             ValueError: If relationship extraction fails after multiple attempts.
         """
         # we would not give the LLM complex data structure as context to avoid the hallucination as much as possible
-        entities_simplified = [(entity.name, entity.label) for entity in entities]
-        formatted_context = f"context : --\n'{context}' \n entities :-- \n {entities_simplified}"
-        IE_query = '''# Directives
+        entities_simplified = [f"{entity.name}:{entity.label}" for entity in entities]
+        formatted_context = f"# context : --\n'{context}' \n# entities(adhere to it) :-- \n {entities_simplified}"
+        IE_query = '''# DIRECTIVES : 
                         - Extract relationships between the provided entities based on the context.
                         - Adhere completely to the provided entities list.
                         - Do not change the name or label of the provided entities list.
