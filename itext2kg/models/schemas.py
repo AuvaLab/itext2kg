@@ -45,24 +45,64 @@ class Article(BaseModel):
     
 # ---------------- Entities & Relationships Extraction --------------------------- #
 
-class Property(BaseModel):
-    name : str = Field("The name of the entity. An entity should encode ONE concept.")
     
 class Entity(BaseModel):
-    label : str = Field("The type or category of the entity, such as 'Process', 'Technique', 'Data Structure', 'Methodology', 'Person', etc. This field helps in classifying and organizing entities within the knowledge graph.")
-    name : str = Field("The specific name of the entity. It should represent a single, distinct concept and must not be an empty string. For example, if the entity is a 'Technique', the name could be 'Neural Networks'.")
+    label: str = Field(
+        description=(
+            "The semantic category of the entity (e.g., 'Person', 'Event', 'Location', 'Methodology', 'Position'). "
+            "Use 'Relationship' objects if the concept is inherently relational or verbal (e.g., 'plans'). "
+            "Prefer consistent, single-word categories where possible (e.g., 'Person', not 'Person_Entity'). "
+        )
+    )
+    name: str = Field(
+        description=(
+            "The unique name or title identifying this entity, representing exactly one concept. "
+            "For example, 'Yassir', 'CEO', or 'X'. Avoid combining multiple concepts (e.g., 'CEO of X'), "
+            "since linking them should be done via Relationship objects. "
+            "Verbs or multi-concept phrases (e.g., 'plans an escape') typically belong in Relationship objects. "
+        )
+    )
     
-class EntitiesExtractor(BaseModel):
-    entities : List[Entity] = Field("All the entities presented in the context. The entities should encode ONE concept.")
     
 class Relationship(BaseModel):
-    startNode: Entity = Field("The starting entity, which is present in the entities list.")
-    endNode: Entity = Field("The ending entity, which is present in the entities list.")
-    name: str = Field("The predicate that defines the relationship between the two entities. This predicate should represent a single, semantically distinct relation.")
+    startNode: Entity = Field(
+        description=(
+            "The 'subject' or source entity of this relationship, which must appear in the EntitiesExtractor."
+        )
+    )
+    endNode: Entity = Field(
+        description=(
+            "The 'object' or target entity of this relationship, which must also appear in the EntitiesExtractor."
+        )
+    )
+    name: str = Field(
+        description=(
+            "A single, canonical predicate capturing how the startNode and endNode relate (e.g., 'is_CEO', "
+            "'holds_position', 'located_in'). Avoid compound verbs (e.g., 'plans_and_executes'). "
+            "AVOID relation names as prepositions 'of', 'in' or similar."
+        )
+    )
 
 class RelationshipsExtractor(BaseModel):
-    relationships: List[Relationship] = Field("Based on the provided entities and context, identify the predicates that define relationships between these entities. The predicates should be chosen with precision to accurately reflect the expressed relationships.")
+    relationships: List[Relationship] = Field(
+        description=(
+            "Based on the provided entities and context, identify the predicates that define relationships between these entities. "
+            "The predicates should be chosen with precision to accurately reflect the expressed relationships."
+        )
+    )
     
+
+class EntitiesExtractor(BaseModel):
+    entities: List[Entity] = Field(
+        description=(
+            "A list of distinct entities extracted from text, each encoding exactly one concept "
+            "(e.g., Person('Yassir'), Position('CEO'), Organization('X')). "
+            "If verbs or actions appear, place them in a Relationship object rather than as an Entity. "
+            "For instance, 'haira plans an escape' should yield separate Entities for Person('Haira'), Event('Escape'), "
+            "and possibly a Relationship('Haira' -> 'plans' -> 'Escape')."
+        )
+    )
+
     
 # ---------------------------- CV ------------------------------------- #
 
@@ -189,3 +229,5 @@ class Facts(BaseModel):
         if isinstance(v, str):
             return [v]  # Convert single string to list
         return v  # Return as-is if already a list
+
+
