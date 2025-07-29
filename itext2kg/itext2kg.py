@@ -120,4 +120,3 @@ class iText2KG:
         constructed_kg.remove_duplicates_relationships()
          
         return constructed_kg
-    
