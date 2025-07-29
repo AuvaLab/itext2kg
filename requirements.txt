@@ -12,7 +12,7 @@ neo4j>=5.28.0,<6.0.0
 openai>=1.97.0,<2.0.0
 
 # Data processing and scientific computing
-numpy>=2.3.0,<3.0.0
+numpy>=1.24.0,<2.0.0
 scikit-learn>=1.7.0,<2.0.0
 
 # Document processing and data handling
