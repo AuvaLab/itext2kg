@@ -62,13 +62,6 @@ To install iText2KG, ensure you have **Python 3.9 or higher** installed (require
 pip install itext2kg
 ```
 
-**Key Features**:
-- **iText2KG_Star**: More efficient relationship-first extraction (recommended)
-- **Facts-based construction**: Enhanced accuracy through structured fact extraction  
-- **Dynamic KGs**: Temporal knowledge graphs with observation dates
-- **Async architecture**: Non-blocking I/O for better performance
-
-**Note**: With the new async architecture (v19.07.2025+), all core methods now require `async`/`await`. See the [Migration Guide](#migration-to-async-api) for updating existing code.
 ## The Overall Architecture
 
 The ```iText2KG``` package consists of four main modules that work together to construct and visualize knowledge graphs from unstructured text. An overview of the overall architecture:
@@ -463,37 +456,6 @@ PASSWORD = "###"
 # Note: Graph visualization remains synchronous
 graph_integrator = Neo4jStorage(uri=URI, username=USERNAME, password=PASSWORD)
 graph_integrator.visualize_graph(knowledge_graph=kg)
-```
-
-## Migration to Async API
-
-If you have existing synchronous code, here's how to migrate:
-
-### Before (Synchronous - Deprecated):
-```python
-from itext2kg import iText2KG
-
-itext2kg = iText2KG(llm_model, embeddings_model)
-kg = itext2kg.build_graph(sections=["text"])  # This will no longer work
-```
-
-### After (Asynchronous - Current):
-```python
-import asyncio
-from itext2kg import iText2KG, iText2KG_Star
-
-async def main():
-    # Option 1: Original iText2KG (separate entity and relation extraction)
-    itext2kg = iText2KG(llm_model, embeddings_model)
-    kg = await itext2kg.build_graph(sections=["text"])
-    
-    # Option 2: iText2KG_Star (recommended - more efficient)
-    itext2kg_star = iText2KG_Star(llm_model, embeddings_model)
-    kg_star = await itext2kg_star.build_graph(sections=["text"])
-    
-    return kg_star
-
-kg = asyncio.run(main())
 ```
 
 
