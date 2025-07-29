@@ -12,7 +12,6 @@ on:
   push:
     branches:
       - "main"
-      - "latest-update"
     paths:
       - "itext2kg/graph_matching/**"
       - "itext2kg/ientities_extraction/**" 
