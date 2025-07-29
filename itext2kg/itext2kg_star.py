@@ -101,4 +101,4 @@ class iText2KG_Star:
         constructed_kg.remove_duplicates_entities()
         constructed_kg.remove_duplicates_relationships()
          
-        return constructed_kg 
+        return constructed_kg
