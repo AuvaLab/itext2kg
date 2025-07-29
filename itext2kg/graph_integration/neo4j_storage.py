@@ -117,12 +117,19 @@ class Neo4jStorage:
                     # Escape quotes in string items
                     escaped_item = Neo4jStorage.escape_str(item)
                     formatted_items.append(f'"{escaped_item}"')
-                else:
-                    # For numbers, booleans, etc.
+                elif isinstance(item, (int, float)):
+                    # For numbers, don't add quotes
                     formatted_items.append(str(item))
+                else:
+                    # For other types, convert to string and escape
+                    escaped_item = Neo4jStorage.escape_str(str(item))
+                    formatted_items.append(f'"{escaped_item}"')
             return f"[{', '.join(formatted_items)}]"
+        elif isinstance(value, (int, float)):
+            # For numeric values, don't add quotes
+            return str(value)
         else:
-            # Handle scalar values (strings, numbers, etc.)
+            # Handle scalar values (strings, etc.)
             return f'"{Neo4jStorage.format_value(value)}"'
 
     def run_query_with_result(self, query: str):
@@ -162,10 +169,14 @@ class Neo4jStorage:
             for prop, value in node.properties.model_dump().items():
                 if prop == "embeddings":
                     value_str = Neo4jStorage.transform_embeddings_to_str_list(value)
+                    properties.append(f'SET n.{prop.replace(" ", "_")} = "{value_str}"')
+                elif isinstance(value, (int, float)):
+                    # For numeric values, don't add quotes
+                    properties.append(f'SET n.{prop.replace(" ", "_")} = {value}')
                 else:
                     value_str = Neo4jStorage.format_value(value)
-                # Build a SET clause for each property.
-                properties.append(f'SET n.{prop.replace(" ", "_")} = "{value_str}"')
+                    # Build a SET clause for each property.
+                    properties.append(f'SET n.{prop.replace(" ", "_")} = "{value_str}"')
 
             query = f'MERGE (n:{node_label} {{name: "{node_name}"}}) ' + ' '.join(properties)
             queries.append(query)
