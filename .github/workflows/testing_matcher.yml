@@ -1,22 +1,31 @@
-name: testing matcher algorithm
+name: Testing Core Components
 on:
   pull_request:
     paths:
-      - "itext2kg/utils/matcher.py"
+      - "itext2kg/graph_matching/**"
       - "itext2kg/ientities_extraction/**"
       - "itext2kg/irelations_extraction/**"
+      - "itext2kg/itext2kg.py"
+      - "itext2kg/itext2kg_star.py"
+      - "itext2kg/models/**"
+      - "tests/**"
   push:
     branches:
       - "main"
+      - "latest-update"
     paths:
-      - "itext2kg/utils/matcher.py"
-      - "itext2kg/ientities_extraction/**"
+      - "itext2kg/graph_matching/**"
+      - "itext2kg/ientities_extraction/**" 
       - "itext2kg/irelations_extraction/**"
+      - "itext2kg/itext2kg.py"
+      - "itext2kg/itext2kg_star.py"
+      - "itext2kg/models/**"
+      - "tests/**"
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     strategy:
       matrix:
@@ -52,4 +61,10 @@ jobs:
           key: pytest_cache-${{ github.head_ref }}
 
       - name: Run unit tests
-        run: python -m pytest
+        run: python -m pytest tests/ -v --tb=short
+
+      - name: Test import of main components
+        run: |
+          python -c "from itext2kg import iText2KG, iText2KG_Star; print('✅ Core imports successful')"
+          python -c "from itext2kg.graph_matching import Matcher; print('✅ Matcher import successful')"
+          python -c "from itext2kg.models import Entity, Relationship, KnowledgeGraph; print('✅ Models import successful')"
