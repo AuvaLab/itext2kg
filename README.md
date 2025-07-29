@@ -24,6 +24,11 @@
 iText2KG is a Python package designed to incrementally construct consistent knowledge graphs with resolved entities and relations by leveraging large language models for entity and relation extraction from text documents. It features zero-shot capability, allowing for knowledge extraction across various domains without specific training. The package includes modules for document distillation, entity extraction, and relation extraction, ensuring resolved and unique entities and relationships. It continuously updates the KG with new documents and integrates them into Neo4j for visual representation.
 
 ## 🔥 News
+* [29/07/2025] New Features and Enhanced Capabilities:
+  - **iText2KG_Star**: Introduced a simpler and more efficient version of iText2KG that eliminates the separate entity extraction step. Instead of extracting entities and relations separately, iText2KG_Star directly extracts relationships from text, automatically deriving entities from those relationships. This approach is more efficient as it reduces processing time and token consumption and does not need to handle invented/isolated entities.
+  - **Facts-Based KG Construction**: Enhanced the framework with facts-based knowledge graph construction using the Document Distiller to extract structured facts from documents, which are then used for incremental KG building. This approach provides more exhaustive and precise knowledge graphs by focusing on factual information extraction.
+  - **Dynamic Knowledge Graphs**: iText2KG now supports building dynamic knowledge graphs that evolve over time. By leveraging the incremental nature of the framework and document snapshots with observation dates, users can track how knowledge changes and grows. See example: [Dynamic KG Construction](./examples/building_dynamic_kg_openai_posts.ipynb). **NB: The temporal/logical conflicts resolution is not handled in this version. But you can apply a post processing filter to resolve them**
+
 * [19/07/2025] Major Performance and Reliability Updates:
   - **Asynchronous Architecture**: Complete migration to async/await patterns for all core methods (`build_graph`, `extract_entities`, `extract_relations`, etc.) enabling better performance and non-blocking I/O operations with LLM APIs.
   - **Logging System**: Implemented comprehensive logging infrastructure to replace all print statements with structured, configurable logging (DEBUG, INFO, WARNING, ERROR levels) with timestamps and module identification.
@@ -57,6 +62,12 @@ To install iText2KG, ensure you have **Python 3.9 or higher** installed (require
 pip install itext2kg
 ```
 
+**Key Features**:
+- **iText2KG_Star**: More efficient relationship-first extraction (recommended)
+- **Facts-based construction**: Enhanced accuracy through structured fact extraction  
+- **Dynamic KGs**: Temporal knowledge graphs with observation dates
+- **Async architecture**: Non-blocking I/O for better performance
+
 **Note**: With the new async architecture (v19.07.2025+), all core methods now require `async`/`await`. See the [Migration Guide](#migration-to-async-api) for updating existing code.
 ## The Overall Architecture
 
@@ -77,7 +88,10 @@ The LLM is prompted to extract entities representing one unique concept to avoid
 ![prompts](./docs/prompts_.png)
 
 ## Modules and Examples
-All the examples are provided in the following jupyter notebook [example](./examples/different_llm_models.ipynb).
+All the examples are provided in the following jupyter notebooks:
+- [Different LLM Models](./examples/different_llm_models.ipynb) - Basic usage with various language models
+- [Dynamic Knowledge Graphs](./examples/building_dynamic_kg_openai_posts.ipynb) - Building evolving KGs with temporal context
+- Additional examples showcasing facts extraction, iText2KG_Star, and more advanced features
 
 Now, iText2KG is compatible with all language models supported by LangChain.
 
@@ -199,8 +213,87 @@ class Article(BaseModel):
 ```
 
 
+### Facts-Based Knowledge Graph Construction
+
+For more exhaustive knowledge graphs, you can use facts-based construction by extracting structured facts from documents first, then using these facts for KG building:
+
+```python
+import asyncio
+from itext2kg import DocumentDistiller
+from itext2kg.models.schemas import Facts
+
+async def extract_facts():
+    # Initialize the DocumentDistiller
+    document_distiller = DocumentDistiller(llm_model=openai_llm_model)
+    
+    # Your documents
+    documents = ["OpenAI announced ChatGPT agent with new capabilities...", 
+                 "The new model can perform complex tasks autonomously..."]
+    
+    # Extract facts from each document
+    IE_query = '''
+    # DIRECTIVES : 
+    - Act like an experienced information extractor. 
+    - Extract clear, factual statements from the text.
+    '''
+    
+    facts_list = await asyncio.gather(*[
+        document_distiller.distill(
+            documents=[doc], 
+            IE_query=IE_query, 
+            output_data_structure=Facts
+        ) for doc in documents
+    ])
+    
+    return facts_list
+
+# Run the async function
+facts = asyncio.run(extract_facts())
+```
+
+### The ```iText2KG_Star``` (Recommended)
+
+iText2KG_Star is a simpler and more efficient version that directly extracts relationships from text and automatically derives entities from those relationships, eliminating the separate entity extraction step:
+
+```python
+import asyncio
+from itext2kg import iText2KG_Star
+from itext2kg.logging_config import setup_logging, get_logger
+
+# Optional: Configure logging
+setup_logging(level="INFO", log_file="itext2kg.log")
+logger = get_logger(__name__)
+
+async def build_knowledge_graph_star():
+    # Initialize iText2KG_Star with the llm model and embeddings model
+    itext2kg_star = iText2KG_Star(llm_model=openai_llm_model, embeddings_model=openai_embeddings_model)
+
+    # Your text sections (can be facts from document distiller or raw text)
+    sections = [
+        "OpenAI announced ChatGPT agent with new capabilities for autonomous task execution.",
+        "The new model integrates browser tools and terminal access for comprehensive automation.",
+        "ChatGPT agent is rolling out to Pro, Plus, and Team users with enhanced safety measures."
+    ]
+
+    logger.info("Starting knowledge graph construction with iText2KG_Star...")
+    
+    # Build the knowledge graph - entities are automatically derived from relationships
+    kg = await itext2kg_star.build_graph(
+        sections=sections,
+        ent_threshold=0.8,      # Higher threshold for more distinct entities
+        rel_threshold=0.7,      # Threshold for relationship merging
+        observation_date="2025-01-15"  # Optional: add temporal context
+    )
+    
+    logger.info(f"Knowledge graph completed! Entities: {len(kg.entities)}, Relationships: {len(kg.relationships)}")
+    return kg
+
+# Run the async function
+kg = asyncio.run(build_knowledge_graph_star())
+```
+
 ### The ```iText2KG```
-The iText2KG module is the core component of the package, responsible for integrating various functionalities to construct the knowledge graph. It uses the distilled semantic sections from documents to extract entities and relationships, and then builds the knowledge graph incrementally. 
+The iText2KG module is the original component of the package, responsible for integrating various functionalities to construct the knowledge graph. It uses the distilled semantic sections from documents to extract entities and relationships separately, and then builds the knowledge graph incrementally. 
 
 Although it is highly recommended to pass the documents through the ```Document Distiller``` module, it is not required for graph creation. You can directly pass your chunks into the ```build_graph``` function of the ```iText2KG``` class; however, your graph may contain some noisy information.
 
@@ -233,6 +326,25 @@ async def build_knowledge_graph():
 kg = asyncio.run(build_knowledge_graph())
 ```
 
+### Arguments
+
+The Arguments of ```iText2KG_Star``` (Recommended):
+
+- `llm_model`: The language model instance to be used for extracting relationships directly from text.
+- `embeddings_model`: The embeddings model instance to be used for creating vector representations of entities and relationships.
+- `sleep_time (int)`: The time to wait (in seconds) when encountering rate limits or errors. Defaults to 5 seconds.
+
+The Arguments of ```iText2KG_Star``` method ```build_graph```:
+
+- `sections (List[str])`: A list of strings where each string represents a section of the document from which relationships will be extracted and entities derived.
+- `existing_knowledge_graph (KnowledgeGraph, optional)`: An existing knowledge graph to merge with. Default is None.
+- `ent_threshold (float, optional)`: The threshold for entity matching when merging sections. Default is 0.7.
+- `rel_threshold (float, optional)`: The threshold for relationship matching when merging sections. Default is 0.7.
+- `max_tries (int, optional)`: The maximum number of attempts to extract relationships. Defaults to 5.
+- `entity_name_weight (float)`: The weight of the entity name in matching. Default is 0.6.
+- `entity_label_weight (float)`: The weight of the entity label in matching. Default is 0.4.
+- `observation_date (str)`: Observation date to add to relationships for temporal tracking. Defaults to "".
+
 The Arguments of ```iText2KG```:
 
 - `llm_model`: The language model instance to be used for extracting entities and relationships from text.
@@ -249,6 +361,94 @@ The Argument of ```iText2KG``` method ```build_graph```:
 - `entity_label_weight (float)`: The weight of the entity label in the entity embedding process. Default is 0.4.
 - `max_tries (int, optional)`: The maximum number of attempts to extract entities and relationships. Defaults to 5.
 - `max_tries_isolated_entities (int, optional)`: The maximum number of attempts to process isolated entities  (entities without relationships). Defaults to 3.
+- `observation_date (str)`: Observation date to add to relationships for temporal tracking. Defaults to "".
+
+### Dynamic Knowledge Graph Construction
+
+Build knowledge graphs that evolve over time by processing documents with temporal context:
+
+```python
+import asyncio
+from itext2kg import DocumentDistiller, iText2KG_Star
+from itext2kg.models.schemas import Facts
+
+async def build_dynamic_knowledge_graph():
+    # Initialize components
+    document_distiller = DocumentDistiller(llm_model=openai_llm_model)
+    itext2kg_star = iText2KG_Star(llm_model=openai_llm_model, embeddings_model=openai_embeddings_model)
+    
+    # Sample time-series data (e.g., social media posts, news articles, reports)
+    time_series_data = [
+        {
+            "observation_date": "2025-01-15",
+            "content": "OpenAI announced ChatGPT agent with autonomous task execution capabilities."
+        },
+        {
+            "observation_date": "2025-01-16", 
+            "content": "ChatGPT agent now integrates browser tools and terminal access for enhanced automation."
+        },
+        {
+            "observation_date": "2025-01-17",
+            "content": "The new agent is rolling out to Pro, Plus, and Team users with enhanced safety measures."
+        }
+    ]
+    
+    # Extract facts from each time point
+    IE_query = '''
+    # DIRECTIVES : 
+    - Act like an experienced information extractor.
+    - Extract clear, factual statements from the text.
+    '''
+    
+    # Process first document to initialize the KG
+    facts_0 = await document_distiller.distill(
+        documents=[time_series_data[0]["content"]], 
+        IE_query=IE_query, 
+        output_data_structure=Facts
+    )
+    
+    # Build initial knowledge graph
+    kg = await itext2kg_star.build_graph(
+        sections=facts_0.facts,
+        observation_date=time_series_data[0]["observation_date"],
+        ent_threshold=0.8,
+        rel_threshold=0.7
+    )
+    
+    # Incrementally update with subsequent documents
+    for i in range(1, len(time_series_data)):
+        print(f"Processing document {i+1} from {time_series_data[i]['observation_date']}")
+        
+        # Extract facts from current document
+        facts = await document_distiller.distill(
+            documents=[time_series_data[i]["content"]], 
+            IE_query=IE_query, 
+            output_data_structure=Facts
+        )
+        
+        # Update the knowledge graph incrementally
+        kg = await itext2kg_star.build_graph(
+            sections=facts.facts,
+            observation_date=time_series_data[i]["observation_date"],
+            existing_knowledge_graph=kg.model_copy(),  # Pass existing KG for incremental updates
+            ent_threshold=0.8,
+            rel_threshold=0.7
+        )
+    
+    print(f"Dynamic KG completed! Entities: {len(kg.entities)}, Relationships: {len(kg.relationships)}")
+    
+    # Each relationship now contains observation_dates showing when it was first observed
+    for rel in kg.relationships:
+        if rel.properties.observation_dates:
+            print(f"Relationship '{rel.name}' first observed: {rel.properties.observation_dates[0]}")
+    
+    return kg
+
+# Run the dynamic KG construction
+dynamic_kg = asyncio.run(build_dynamic_knowledge_graph())
+```
+
+For a complete example of dynamic KG construction from social media posts, see: [Dynamic KG Construction Example](./examples/building_dynamic_kg_openai_posts.ipynb)
 
 ## The ```GraphIntegrator```
 It integrates the extracted entities and relationships into a Neo4j graph database and provides a visualization of the knowledge graph. This module allows users to easily explore and analyze the structured data using Neo4j's graph capabilities.
@@ -280,62 +480,21 @@ kg = itext2kg.build_graph(sections=["text"])  # This will no longer work
 ### After (Asynchronous - Current):
 ```python
 import asyncio
-from itext2kg import iText2KG
+from itext2kg import iText2KG, iText2KG_Star
 
 async def main():
+    # Option 1: Original iText2KG (separate entity and relation extraction)
     itext2kg = iText2KG(llm_model, embeddings_model)
     kg = await itext2kg.build_graph(sections=["text"])
-    return kg
+    
+    # Option 2: iText2KG_Star (recommended - more efficient)
+    itext2kg_star = iText2KG_Star(llm_model, embeddings_model)
+    kg_star = await itext2kg_star.build_graph(sections=["text"])
+    
+    return kg_star
 
 kg = asyncio.run(main())
 ```
-
-### Complete Example with Error Handling and Logging:
-```python
-import asyncio
-from itext2kg import iText2KG, DocumentDistiller
-from itext2kg.logging_config import setup_logging, get_logger
-
-# Configure logging
-setup_logging(level="INFO", console_output=True, log_file="knowledge_graph.log")
-logger = get_logger(__name__)
-
-async def process_documents_to_kg(documents, schema):
-    try:
-        # Initialize components
-        distiller = DocumentDistiller(llm_model=openai_llm_model)
-        itext2kg = iText2KG(llm_model=openai_llm_model, embeddings_model=openai_embeddings_model)
-        
-        # Step 1: Distill documents
-        logger.info("Starting document distillation...")
-        distilled_doc = await distiller.distill(
-            documents=documents, 
-            IE_query="Extract key information",
-            output_data_structure=schema
-        )
-        
-        # Step 2: Build knowledge graph
-        semantic_blocks = [f"{key} - {value}" for key, value in distilled_doc.items()]
-        logger.info("Building knowledge graph...")
-        kg = await itext2kg.build_graph(
-            sections=semantic_blocks,
-            ent_threshold=0.7,
-            rel_threshold=0.7
-        )
-        
-        logger.info("Successfully created knowledge graph with %d entities and %d relationships", 
-                   len(kg.entities), len(kg.relationships))
-        return kg
-        
-    except Exception as e:
-        logger.error("Failed to process documents: %s", e)
-        raise
-
-# Usage
-documents = ["Document content 1", "Document content 2"]
-kg = asyncio.run(process_documents_to_kg(documents, YourSchema))
-```
-
 
 
 ## Some ```iText2KG``` use-cases
