@@ -481,7 +481,8 @@ stats = falkor_storage.get_graph_stats()
 print(f"Graph contains {stats['nodes']} nodes and {stats['relationships']} relationships")
 
 # Run custom queries
-result = falkor_storage.run_query_with_result("MATCH (n) RETURN labels(n), count(n)")
+# Run analytics query
+result = falkor_storage.run_query("MATCH (n) RETURN labels(n), count(n)")
 
 # Clean up
 falkor_storage.close()

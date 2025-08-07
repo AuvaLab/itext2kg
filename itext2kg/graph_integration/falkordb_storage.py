@@ -41,12 +41,15 @@ class FalkorDBStorage:
         """
         return self.client
 
-    def run_query(self, query: str) -> None:
+    def run_query(self, query: str):
         """
         Runs a Cypher query against the FalkorDB database.
         
         Args:
             query (str): The Cypher query to run.
+            
+        Returns:
+            Query result from FalkorDB.
         """
         try:
             result = self.graph.query(query)
@@ -54,24 +57,6 @@ class FalkorDBStorage:
             return result
         except Exception as e:
             logger.error("Failed to execute query '%s': %s", query[:100], e)
-            raise
-
-    def run_query_with_result(self, query: str):
-        """
-        Runs a Cypher query against the FalkorDB database and returns results.
-        
-        Args:
-            query (str): The Cypher query to run.
-        
-        Returns:
-            Query result from FalkorDB.
-        """
-        try:
-            result = self.graph.query(query)
-            logger.debug("Executed query with results: %s", query[:100])
-            return result
-        except Exception as e:
-            logger.error("Failed to execute query with results '%s': %s", query[:100], e)
             raise
 
     @staticmethod
@@ -339,20 +324,20 @@ class FalkorDBStorage:
         """
         try:
             # Get node count
-            node_result = self.run_query_with_result("MATCH (n) RETURN count(n) as node_count")
+            node_result = self.run_query("MATCH (n) RETURN count(n) as node_count")
             node_count = 0
             if hasattr(node_result, 'result_set') and node_result.result_set:
-                node_count = node_result.result_set[0][0] if node_result.result_set[0] else 0
+                node_count = node_result.result_set[0][0] if len(node_result.result_set) > 0 and len(node_result.result_set[0]) > 0 else 0
             
             # Get relationship count  
-            rel_result = self.run_query_with_result("MATCH ()-[r]->() RETURN count(r) as rel_count")
+            rel_result = self.run_query("MATCH ()-[r]->() RETURN count(r) as rel_count")
             rel_count = 0
             if hasattr(rel_result, 'result_set') and rel_result.result_set:
-                rel_count = rel_result.result_set[0][0] if rel_result.result_set[0] else 0
+                rel_count = rel_result.result_set[0][0] if len(rel_result.result_set) > 0 and len(rel_result.result_set[0]) > 0 else 0
             
             stats = {
-                'nodes': node_count,
-                'relationships': rel_count
+                'nodes': int(node_count) if node_count is not None else 0,
+                'relationships': int(rel_count) if rel_count is not None else 0
             }
             
             logger.info("Graph stats: %s", stats)
