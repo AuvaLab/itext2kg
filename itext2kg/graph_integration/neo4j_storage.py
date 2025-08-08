@@ -3,6 +3,7 @@ import numpy as np
 from typing import List
 from itext2kg.models import KnowledgeGraph
 from itext2kg.logging_config import get_logger
+from typing import List, Optional
 
 logger = get_logger(__name__)
 
@@ -10,7 +11,7 @@ class Neo4jStorage:
     """
     A class to integrate and manage graph data in a Neo4j database.
     """
-    def __init__(self, uri: str, username: str, password: str):
+    def __init__(self, uri: str, username: str, password: str, database: Optional[str] = None):
         """
         Initializes the Neo4jStorage with database connection parameters.
         
@@ -18,10 +19,12 @@ class Neo4jStorage:
             uri (str): URI for the Neo4j database.
             username (str): Username for database access.
             password (str): Password for database access.
+            database (Optional[str]): The name of the database to connect to. Defaults to None, which uses the default database.
         """
         self.uri = uri
         self.username = username
         self.password = password
+        self.database = database 
         self.driver = self.connect()
         
     def connect(self):
@@ -42,7 +45,7 @@ class Neo4jStorage:
         Args:
             query (str): The Cypher query to run.
         """
-        session = self.driver.session()
+        session = self.driver.session(database=self.database)
         try:
             session.run(query)
         finally:
@@ -142,7 +145,7 @@ class Neo4jStorage:
         Returns:
             List of records from the query result.
         """
-        session = self.driver.session()
+        session = self.driver.session(database=self.database)
         try:
             result = session.run(query)
             return [record for record in result]
