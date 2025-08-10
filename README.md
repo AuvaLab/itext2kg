@@ -21,7 +21,7 @@
 
 ## Overview
 
-iText2KG is a Python package designed to incrementally construct consistent knowledge graphs with resolved entities and relations by leveraging large language models for entity and relation extraction from text documents. It features zero-shot capability, allowing for knowledge extraction across various domains without specific training. The package includes modules for document distillation, entity extraction, and relation extraction, ensuring resolved and unique entities and relationships. It continuously updates the KG with new documents and integrates them into Neo4j for visual representation.
+iText2KG is a Python package designed to incrementally construct consistent knowledge graphs with resolved entities and relations by leveraging large language models for entity and relation extraction from text documents. It features zero-shot capability, allowing for knowledge extraction across various domains without specific training. The package includes modules for document distillation, entity extraction, and relation extraction, ensuring resolved and unique entities and relationships. It continuously updates the KG with new documents and integrates them into Neo4j or FalkorDB for visual representation.
 
 ## 🔥 News
 * [29/07/2025] New Features and Enhanced Capabilities:
@@ -458,6 +458,37 @@ graph_integrator = Neo4jStorage(uri=URI, username=USERNAME, password=PASSWORD)
 graph_integrator.visualize_graph(knowledge_graph=kg)
 ```
 
+## FalkorDB Integration
+
+iText2KG also supports FalkorDB, providing the same functionality with enhanced performance for graph operations:
+
+```python
+from itext2kg.graph_integration import FalkorDBStorage
+
+# Initialize FalkorDB storage
+falkor_storage = FalkorDBStorage(
+    host="localhost",
+    port=6379,
+    password=None,  # Set if your FalkorDB instance requires authentication
+    graph_name="MyKnowledgeGraph"
+)
+
+# Store and visualize the knowledge graph
+falkor_storage.visualize_graph(knowledge_graph=kg)
+
+# Get graph statistics
+stats = falkor_storage.get_graph_stats()
+print(f"Graph contains {stats['nodes']} nodes and {stats['relationships']} relationships")
+
+# Run custom queries
+# Run analytics query
+result = falkor_storage.run_query("MATCH (n) RETURN labels(n), count(n)")
+
+# Clean up
+falkor_storage.close()
+```
+
+For a complete FalkorDB example, see: [FalkorDB Quickstart](./examples/quickstart_falkordb.ipynb)
 
 ## Some ```iText2KG``` use-cases
 
