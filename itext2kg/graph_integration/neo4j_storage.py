@@ -166,7 +166,12 @@ class Neo4jStorage:
         for node in knowledge_graph.entities:
             # Escape the node name and label if needed.
             node_name = Neo4jStorage.format_value(node.name)
-            node_label = node.label  # Assuming label is already valid
+            original_label = node.label
+            node_label = Neo4jStorage.sanitize_label(node.label)
+            
+            # Log label sanitization for debugging
+            if original_label != node_label:
+                logger.info(f"Sanitized node label '{original_label}' to '{node_label}' for node '{node_name}'")
             
             properties = []
             for prop, value in node.properties.model_dump().items():
@@ -198,11 +203,23 @@ class Neo4jStorage:
         rels = []
         for rel in knowledge_graph.relationships:
             # Escape start and end node names.
-            start_label = rel.startEntity.label
+            original_start_label = rel.startEntity.label
+            original_end_label = rel.endEntity.label
+            original_rel_name = rel.name
+            
+            start_label = Neo4jStorage.sanitize_label(rel.startEntity.label)
             start_name = Neo4jStorage.format_value(rel.startEntity.name)
-            end_label = rel.endEntity.label
+            end_label = Neo4jStorage.sanitize_label(rel.endEntity.label)
             end_name = Neo4jStorage.format_value(rel.endEntity.name)
-            rel_name = rel.name  # Assuming relationship type is valid
+            rel_name = Neo4jStorage.sanitize_relationship_type(rel.name)
+            
+            # Log sanitization for debugging
+            if original_start_label != start_label:
+                logger.info(f"Sanitized start entity label '{original_start_label}' to '{start_label}'")
+            if original_end_label != end_label:
+                logger.info(f"Sanitized end entity label '{original_end_label}' to '{end_label}'")
+            if original_rel_name != rel_name:
+                logger.info(f"Sanitized relationship type '{original_rel_name}' to '{rel_name}'")
             
             # Build property statements for setting all properties
             property_statements = []
@@ -246,4 +263,93 @@ class Neo4jStorage:
 
         for rel_query in relationships:
             self.run_query(rel_query)
+
+    @staticmethod
+    def sanitize_label(label: str) -> str:
+        """
+        Sanitizes a label to be Neo4j compliant.
+        Neo4j labels cannot start with numbers and must follow specific naming conventions.
+        
+        Args:
+            label (str): The original label to sanitize
+            
+        Returns:
+            str: A sanitized label that is Neo4j compliant
+        """
+        if not label:
+            return "Entity"
+        
+        # Remove any non-alphanumeric characters except underscores
+        sanitized = ''.join(c for c in label if c.isalnum() or c == '_')
+        
+        # If the label starts with a number, prefix it with 'L'
+        if sanitized and sanitized[0].isdigit():
+            sanitized = 'L' + sanitized
+        
+        # If the label is empty after sanitization, use a default
+        if not sanitized:
+            sanitized = "Entity"
+            
+        return sanitized
+    
+    @staticmethod
+    def sanitize_relationship_type(rel_type: str) -> str:
+        """
+        Sanitizes a relationship type to be Neo4j compliant.
+        Neo4j relationship types cannot start with numbers and must follow specific naming conventions.
+        
+        Args:
+            rel_type (str): The original relationship type to sanitize
+            
+        Returns:
+            str: A sanitized relationship type that is Neo4j compliant
+        """
+        if not rel_type:
+            return "RELATES_TO"
+        
+        # Remove any non-alphanumeric characters except underscores
+        sanitized = ''.join(c for c in rel_type if c.isalnum() or c == '_')
+        
+        # If the relationship type starts with a number, prefix it with 'R'
+        if sanitized and sanitized[0].isdigit():
+            sanitized = 'R' + sanitized
+        
+        # If the relationship type is empty after sanitization, use a default
+        if not sanitized:
+            sanitized = "RELATES_TO"
+            
+        return sanitized
+    
+    def get_sanitization_mapping(self, knowledge_graph: KnowledgeGraph) -> dict:
+        """
+        Returns a mapping of original labels/relationship types to their sanitized versions.
+        Useful for understanding how labels will be transformed before database insertion.
+        
+        Args:
+            knowledge_graph (KnowledgeGraph): The KnowledgeGraph object to analyze
+            
+        Returns:
+            dict: A dictionary with 'labels' and 'relationships' keys containing the mappings
+        """
+        label_mapping = {}
+        relationship_mapping = {}
+        
+        # Map entity labels
+        for entity in knowledge_graph.entities:
+            original = entity.label
+            sanitized = Neo4jStorage.sanitize_label(original)
+            if original != sanitized:
+                label_mapping[original] = sanitized
+        
+        # Map relationship types
+        for rel in knowledge_graph.relationships:
+            original = rel.name
+            sanitized = Neo4jStorage.sanitize_relationship_type(original)
+            if original != sanitized:
+                relationship_mapping[original] = sanitized
+        
+        return {
+            'labels': label_mapping,
+            'relationships': relationship_mapping
+        }
 
