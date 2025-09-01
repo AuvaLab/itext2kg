@@ -10,6 +10,7 @@ langchain-openai~=0.2.0
 
 # Database and API clients
 neo4j>=5.28.0,<6.0.0
+falkordb>=1.0.0  # Add FalkorDB support
 openai>=1.97.0,<2.0.0
 
 # Data processing and scientific computing
