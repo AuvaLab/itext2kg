@@ -1,4 +1,5 @@
 # iText2KG: Incremental Knowledge Graphs Construction Using Large Language Models
+# ATOM: AdapTive and OptiMized Dynamic Temporal Knowledge Graph Construction Using LLMs
 
 ![GitHub stars](https://img.shields.io/github/stars/auvalab/itext2kg?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/auvalab/itext2kg?style=social)
