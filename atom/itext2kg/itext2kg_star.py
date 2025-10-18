@@ -1,9 +1,9 @@
 from typing import List
 from .irelations_extraction import SimpleDirectiRelationsExtractor
 from .graph_matching import Matcher
-from .llm_output_parsing import LangchainOutputParser
+from atom.llm_output_parsing.langchain_output_parser import LangchainOutputParser
 from .models import KnowledgeGraph
-from .logging_config import get_logger
+from atom.logging_config import get_logger
 
 logger = get_logger(__name__)
 

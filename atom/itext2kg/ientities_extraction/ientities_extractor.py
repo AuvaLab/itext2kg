@@ -1,6 +1,6 @@
-from itext2kg.llm_output_parsing.langchain_output_parser import LangchainOutputParser
-from itext2kg.models import Entity, KnowledgeGraph, EntitiesExtractor
-from itext2kg.logging_config import get_logger
+from atom.llm_output_parsing.langchain_output_parser import LangchainOutputParser
+from atom.itext2kg.models import Entity, KnowledgeGraph, EntitiesExtractor
+from atom.logging_config import get_logger
 from typing import List
 
 logger = get_logger(__name__)

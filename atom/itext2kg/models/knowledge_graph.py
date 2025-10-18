@@ -2,7 +2,6 @@ from pydantic import BaseModel, SkipValidation
 from typing import Callable, Awaitable
 import numpy as np
 import re
-from datetime import datetime
 from dateutil.parser import parse as parse_date
 
 class EntityProperties(BaseModel):

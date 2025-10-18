@@ -1,4 +1,4 @@
-from typing import Protocol, Union, List, Any
+from typing import Protocol, Union, List, Any, Optional
 import numpy as np
 
 class LLMOutputParserInterface(Protocol):
@@ -22,16 +22,16 @@ class LLMOutputParserInterface(Protocol):
     
     def split_prompts_into_batches(self, 
                                  prompts: List[str], 
-                                 max_elements: int = 500, 
-                                 max_tokens: int = 80000, 
+                                 max_elements: Optional[int] = None, 
+                                 max_tokens: Optional[int] = None, 
                                  encoding_name: str = "cl100k_base") -> List[List[str]]:
         """
         Split a list of prompts into batches that respect token and element limits.
         
         Args:
             prompts: List of prompts to split
-            max_elements: Maximum number of elements per batch
-            max_tokens: Maximum number of tokens per batch
+            max_elements: Maximum number of elements per batch (None = use provider defaults)
+            max_tokens: Maximum number of tokens per batch (None = use provider defaults)
             encoding_name: The encoding to use for token counting
             
         Returns:
@@ -60,14 +60,14 @@ class LLMOutputParserInterface(Protocol):
                                                     - If you do not find the right information, keep its place empty.
                                                     ''') -> List[Any]:
         """
-        Extract structured information from contexts using the specified output structure.
+        Extract structured information from contexts using the LLM.
         
         Args:
-            output_data_structure: The structure to use for the output
-            contexts: List of contexts to extract information from
-            system_query: The system query to use for extraction
+            output_data_structure: The expected output structure/schema
+            contexts: List of context strings to process
+            system_query: The system instruction/query
             
         Returns:
-            List of extracted information matching the output structure
+            List of extracted structured data matching the output structure
         """
         ... 
