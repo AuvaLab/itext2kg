@@ -1,12 +1,23 @@
 # ATOM: AdapTive and OptiMized Dynamic Temporal Knowledge Graph Construction Using LLMs
 
+iText2KG is now ATOM. ATOM is a few-shot and scalable approach for building and continuously updating Temporal Knowledge Graphs (TKGs) from unstructured texts. 
+(We kept the legacy iText2KG in the repository, please check ![README](./README_itext2kg.md).)
+
+
 <p align="center">
   <img src="./docs/banner-atom.png" width="851px" alt="ATOM Banner">
 </p>
 
+![GitHub stars](https://img.shields.io/github/stars/auvalab/itext2kg?style=social)
+![GitHub forks](https://img.shields.io/github/forks/auvalab/itext2kg?style=social)
+![PyPI](https://img.shields.io/pypi/dm/itext2kg)
+![Total Downloads](https://img.shields.io/pepy/dt/itext2kg)
+[![Paper](https://img.shields.io/badge/Paper-View-green?style=flat&logo=adobeacrobatreader)]()
+![PyPI](https://img.shields.io/pypi/v/itext2kg)
+[![Demo](https://img.shields.io/badge/Demo-Available-blue)](./examples/)
+![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow)
 
 
-[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
 <p align="center">
   <picture>
@@ -17,19 +28,22 @@
 </p>
 
 
-A few-shot and scalable approach for building and continuously updating Temporal Knowledge Graphs (TKGs) from unstructured texts.
 
 ## Overview
+Traditional static KG construction often overlooks the dynamic and time-sensitive nature of real-world data, limiting adaptability to continuous changes. Moreover, recent zero- or few-shot approaches that avoid domain-specific fine-tuning or reliance on prebuilt ontologies often suffer from instability across multiple runs, as well as incomplete coverage of key facts.
 
-ATOM (AdapTive and OptiMized) addresses key limitations in current zero- and few-shot TKG construction methods by:
+To address these challenges, we introduce ATOM (AdapTive and OptiMized), a few-shot and scalable approach that builds and continuously updates Temporal Knowledge Graphs (TKGs) from unstructured texts. ATOM splits input documents into minimal, self-contained “atomic” facts, improving extraction exhaustivity and stability. From these atomic facts, atomic KGs are derived and then merged in parallel. 
 
-- ✅ **Improving exhaustivity**: Capturing comprehensive fact coverage from longer texts (~31% gain on factual exhaustivity)
+In a nutshell, ATOM adresses these limitations by:
+
+- ✅ **Improving exhaustivity**: Capturing comprehensive fact coverage from longer texts (~31% gain on factual exhaustivity, ~18% improvement in temporal exhaustivity)
 - ✅ **Ensuring stability**: Producing consistent TKGs across multiple runs (~17% improvement)
-- ✅ **Enabling scalability**: Supporting large-scale dynamic temporal updates through parallel architecture (93.8% latency reduction vs. Graphiti)
+- ✅ **Enabling scalability**: Supporting large-scale dynamic temporal updates through parallel architecture
 
 ## Key Features
 
 ### Atomic Fact Decomposition
+
 ATOM decomposes unstructured text into **atomic facts** - short, self-contained snippets that convey exactly one piece of information. This addresses the "forgetting effect" where LLMs prioritize salient information in longer contexts while omitting key relationships.
 
 ### Dual-Time Modeling
@@ -42,6 +56,46 @@ The framework employs three modules running in parallel:
 1. **Module-1**: Atomic Fact Decomposition
 2. **Module-2**: Atomic TKGs Construction (parallel 5-tuple extraction)
 3. **Module-3**: Parallel Atomic Merge of TKGs and DTKG Update
+
+## 🔥 News
+* [20/10/2025] ATOM - Major Enhancements :
+  - **Complete Architectural Redesign**: ATOM employs a three-module parallel pipeline that constructs and continuously updates Dynamic Temporal Knowledge Graphs (DTKGs) from unstructured text.
+  - **Atomic Fact Decomposition**: Implemented atomic fact decomposition that converts complex unstructured text into short, self-contained atomic facts that convey exactly one piece of information, addressing the "forgetting effect" where LLMs prioritize salient information while omitting key relationships in longer contexts.
+  - **Enhanced Exhaustivity and Stability**: The architecture achieved ~31% improvement in factual exhaustivity, ~18% improvement in temporal exhaustivity, ~17% improvement in stability across multiple runs, and ~31% reduction in factual omission compared to direct paragraph extraction methods.
+  - **Dual-Time Modeling**: Introduced a temporal modeling that differentiates between observation time (`t_obs`) - when facts are observed - and validity period (`t_start`, `t_end`) - temporal information conveyed by the facts themselves, preventing temporal misattribution in dynamic TKGs (DTKGs).
+  - **Parallel 5-Tuple Extraction**: Replaced separate entity and relation extraction with direct parallel extraction of 5-tuples `(subject, predicate, object, t_start, t_end)` from atomic facts, reducing processing time, token consumption, and eliminating invented/isolated entity handling while maintaining higher accuracy.
+  - **Parallel Atomic Merge Architecture**: Implemented an efficient parallel merge algorithm that processes atomic TKGs through iterative pairwise merging with configurable thread pools, achieving 93.8% latency reduction vs. Graphiti and 95.3% vs. iText2KG (with 8 threads, batch size of 40 atomic facts).
+  - **LLM-Independent Resolution**: Enhanced entity and relation resolution using distance metrics (cosine similarity thresholds: θ_E = 0.8 for entities, θ_R = 0.7 for relations) instead of LLM-based resolution, enabling true parallelization and scalability to millions of nodes without computational bottlenecks.
+
+
+* [29/07/2025] iText2KG - New Features and Enhanced Capabilities:
+  - **iText2KG_Star**: Introduced a simpler and more efficient version of iText2KG that eliminates the separate entity extraction step. Instead of extracting entities and relations separately, iText2KG_Star directly extracts relationships from text, automatically deriving entities from those relationships. This approach is more efficient as it reduces processing time and token consumption and does not need to handle invented/isolated entities.
+  - **Facts-Based KG Construction**: Enhanced the framework with facts-based knowledge graph construction using the Document Distiller to extract structured facts from documents, which are then used for incremental KG building. This approach provides more exhaustive and precise knowledge graphs by focusing on factual information extraction.
+  - **Dynamic Knowledge Graphs**: iText2KG now supports building dynamic knowledge graphs that evolve over time. By leveraging the incremental nature of the framework and document snapshots with observation dates, users can track how knowledge changes and grows. See example: [Dynamic KG Construction](./examples/building_dynamic_kg_openai_posts.ipynb). **NB: The temporal/logical conflicts resolution is not handled in this version. But you can apply a post processing filter to resolve them**
+
+* [19/07/2025] iText2KG - Major Performance and Reliability Updates:
+  - **Asynchronous Architecture**: Complete migration to async/await patterns for all core methods (`build_graph`, `extract_entities`, `extract_relations`, etc.) enabling better performance and non-blocking I/O operations with LLM APIs.
+  - **Logging System**: Implemented comprehensive logging infrastructure to replace all print statements with structured, configurable logging (DEBUG, INFO, WARNING, ERROR levels) with timestamps and module identification.
+  - **Enhanced Batch Processing**: Improved efficiency through async batch processing for multiple document handling and LLM API calls.
+  - **Better Error Handling**: Enhanced error handling and retry mechanisms with proper logging for production environments.
+
+* [07/10/2024] iText2KG - Latest features:
+  - The entire iText2KG code has been refactored by adding data models that describe an Entity, a Relation, and a KnowledgeGraph.
+  - Each entity is embedded using both its name and label to avoid merging concepts with similar names but different labels. For example, Python:Language and Python:Snake.
+    - The weights for entity name embedding and entity label are configurable, with defaults set to 0.4 for the entity label and 0.6 for the entity name.
+  - A max_tries parameter has been added to the iText2KG.build_graph function for entity and relation extraction to prevent hallucinatory effects in structuring the output. Additionally, a max_tries_isolated_entities parameter has been added to the same method to handle hallucinatory effects when processing isolated entities.
+
+* [17/09/2024] iText2KG - Latest features: 
+  - Now, iText2KG is compatible with all the chat/embeddings models supported by LangChain. For available chat models, refer to the options listed at: https://python.langchain.com/v0.2/docs/integrations/chat/. For embedding models, explore the choices at: https://python.langchain.com/v0.2/docs/integrations/text_embedding/.
+
+  - The constructed graph can be expanded by passing the already extracted entities and relationships as arguments to the `build_graph` function in iText2KG.
+  - iText2KG is compatible with all Python versions above 3.9.
+
+
+* [16/07/2024] iText2KG - We have addressed two major LLM hallucination issues related to KG construction with LLMs when passing the entities list and context to the LLM. These issues are:
+
+  - The LLM might invent entities that do not exist in the provided entities list. We handled this problem by replacing the invented entities with the most similar ones from the input entities list.
+  - The LLM might fail to assign a relation to some entities from the input entities list, causing a "forgetting effect." We handled this problem by reprompting the LLM to extract relations for those entities.
 
 ## Architecture
 
@@ -60,119 +114,6 @@ The resulting TKG snapshot `G^t_s` is then merged with the previous DTKG `G^{t-1
   <img src="./docs/atom_architecture.png" width="800px" alt="ATOM Architecture">
 </p>
 
----
-## The prompts
-
-### Atomic Facts Decomposition
-It is performed using the object `AtomicFact` in `atom/models/schemas.py`
-
-```
-You are an expert factoid extraction engine. Your primary function is to read a news paragraph and its associated observation date, and then decompose the text into a comprehensive list of atomic, self-contained, and temporally-grounded facts.
-
-## Task
-Given an input paragraph and an `observation_date`, generate a list of all distinctatomic factspresent in the text.
-
-## Guidelines for Generating Temporal Factoids
-
-### 1. Atomic Factoids
-- Convert compound or complex sentences into short, single-fact statements
-- Each factoid must contain exactly one piece of information or relationship
-- Ensure that each factoid is expressed directly and concisely, without redundancies or duplicating the same information across multiple statements
-- **Example:** "Unsupervised learning is dedicated to discovering intrinsic patterns in unlabeled datasets" becomes "Unsupervised learning discovers patterns in unlabeled data"
-
-### 2. Decontextualization
-- Replace pronouns (e.g., "it," "he," "they") with the full entity name or a clarifying noun phrase
-- Include any necessary modifiers so that each factoid is understandable in isolation
-
-### 3. Temporal Context
-- Convert ALL time references to absolute dates/times using the observation_date
-
-#### Conversion Rules:
-- "today" → exact observation_date
-- "yesterday" → observation_date minus 1 day
-- "this week" → Monday of observation_date's week
-- "last week" → Monday of the week before observation_date
-- "this month" → first day of observation_date's month
-- "last month" → first day of the month before observation_date
-- "this year" → January 1st of observation_date's year
-- "last year" → January 1st of the year before observation_date
-- Keep explicit dates as-is (e.g., "June 18, 2024")
-
-#### Additional Temporal Guidelines:
-- Position time references naturally within factoids
-- Split sentences with multiple time references into separate factoids
-- **NEVER include relative terms like "today," "yesterday," "last week" in the final factoids**
-
-### 4. Accuracy & Completeness
-- Preserve the original meaning without combining multiple facts into a single statement
-- Avoid adding details not present in the source text
-
-### 5. End Actions
-- If the text indicates the end of a role or an action (for example, someone leaving a position), be explicit about the role/action and the time it ended
-
-### 6. Redundancies
-- Eliminate redundancies by simplifying phrases
-- **Example:** Convert "the method is crucial for maintaining X" into "the method maintains X"
-
-## Example
-
-**Input:** "On June 18, 2024, Real Madrid won the Champions League final with a 2-1 victory. Following the triumph, fans of Real Madrid celebrated the Champions League victory across the city."
-
-**Output:**
-- Real Madrid won the Champions League final on June 18, 2024
-- The Champions League final ended with a 2-1 victory for Real Madrid on June 18, 2024
-- Fans of Real Madrid celebrated the Champions League victory across the city on June 18, 2024
-```
-### 5-tuples Extraction
-It is performed using the object `RelationshipsExtractor` in `atom/models/schemas.py`
-```
-Observation Time : {obs_timestamp}
-
-You are a top-tier algorithm designed for extracting information in structured 
-formats to build a knowledge graph.
-Try to capture as much information from the text as possible without 
-sacrificing accuracy. Do not add any information that is not explicitly mentioned in the text
-Remember, the knowledge graph should be coherent and easily understandable, 
-so maintaining consistency in entity references is crucial.
-
-Few Shot Examples \n
-
-* Michel served as CFO at Acme Corp from 2019 to 2021. He was hired by Beta Inc in 2021, but left that role in 2023.
--> (Michel, is_CFO_of, Acme Corp, ["01-01-2019"], ["01-01-2021"]), (Michel, works_at, Beta Inc, ["01-01-2021"], ["01-01-2023"])
-
-* Subsequent experiments confirmed the role of microRNAs in modulating cell growth.
--> (Experiments, confirm_role_of, microRNAs, [], []), (microRNAs, modulate, Cell Growth, [], [])
-
-* Researchers used high-resolution imaging in a study on neural plasticity.
--> (Researchers, use, High-Resolution Imaging, [], []), (High-Resolution Imaging, is_used_in, Study on Neural Plasticity, [], [])
-
-* Sarah was a board member of GreenFuture until 2019.
--> (Sarah, is_board_member_of, GreenFuture, [], ["01-01-2019"])
-
-* Dr. Lee was the head of the Oncology Department until 2022.
--> (Dr. Lee, is_head_of, Oncology Department, [], ["01-01-2022"])
-
-* Activity-dependent modulation of receptor trafficking is crucial for maintaining synaptic efficacy.
--> (Activity-Dependent Modulation, involves, Receptor Trafficking, [], []), (Receptor Trafficking, maintains, Synaptic Efficacy, [], [])
-
-* (observation_date = 2024-06-15) John Doe is no longer the CEO of GreenIT a few months ago.
--> (John Doe, is_CEO_of, GreenIT, [], ["2024-03-15"])
-# "a few months ago" ≈ 3 months → 2024-06-15 minus 3 months = 2024-03-15
-
-* John Doe's marriage is happening on 26-02-2026.
--> (John Doe, has_status, Married, ["2026-02-26"], [])
-
-* (observation_date = 2024-03-20) The AI Summit conference started yesterday and will end tomorrow.
--> (AI Summit, has_status, Started, ["2024-03-19"], ["2024-03-21"])
-
-* The independence day of Morocco is celebrated on January 1st each year since 1956.
--> (Morocco, celebrates, Independence Day, ["1956-01-01"], [])
-
-* (observation_date = 2024-08-10) The product launch event is scheduled for next month.
--> (Product Launch, has_status, Scheduled, ["2024-09-01"], [])
-# "next month" = first day of September 2024
-
-```
 
 ---
 ## Example of the ATOM Workflow
@@ -198,11 +139,6 @@ ATOM achieves significant latency reduction of 93.8% compared to Graphiti and 95
   <img src="./docs/latency_comparison_plot.png" width="800px" alt="Latency Comparison">
 </p>
 
----
-
-## Results
-
-Empirical evaluations demonstrate that ATOM's atomic fact decomposition improves temporal exhaustivity by ~18% and factual exhaustivity by ~31% compared to direct lead paragraph extraction, with ~31% reduction in factual omission and ~17% improvement in stability across multiple runs, though at the cost of a ~9% increase in hallucination rate due to LLM-inferred atomic facts. The parallel architecture enables 93.8% latency reduction versus Graphiti and 95.3% versus iText2KG, demonstrating ATOM's scalability for large-scale dynamic TKG construction. For DTKG construction, ATOM outperforms Graphiti and iText2KG for entity resolution/relation resolution.
 ---
 
 ## Example
