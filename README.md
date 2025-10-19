@@ -1,139 +1,261 @@
-# iText2KG: Incremental Knowledge Graphs Construction Using Large Language Models
 # ATOM: AdapTive and OptiMized Dynamic Temporal Knowledge Graph Construction Using LLMs
 
-![GitHub stars](https://img.shields.io/github/stars/auvalab/itext2kg?style=social)
-![GitHub forks](https://img.shields.io/github/forks/auvalab/itext2kg?style=social)
-![PyPI](https://img.shields.io/pypi/dm/itext2kg)
-![Total Downloads](https://img.shields.io/pepy/dt/itext2kg)
-[![Paper](https://img.shields.io/badge/Paper-View-green?style=flat&logo=adobeacrobatreader)](https://arxiv.org/abs/2409.03284)
-![PyPI](https://img.shields.io/pypi/v/itext2kg)
-[![Demo](https://img.shields.io/badge/Demo-Available-blue)](./examples/)
-![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow)
-
-🎉 Accepted @ [WISE 2024](https://wise2024-qatar.com/)
+[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./docs/logo_white.png" width="300">
-    <source media="(prefers-color-scheme: light)" srcset="./docs/logo_black.png" width="300">
-    <img alt="Logo" src="./docs/logo_white.png" width="300">
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/logo_atom_white.png" width="300">
+    <source media="(prefers-color-scheme: light)" srcset="./docs/logo_atom_black.png" width="300">
+    <img alt="Logo" src="./docs/logo_atom_white.png" width="300">
   </picture>
 </p>
 
+
+A few-shot and scalable approach for building and continuously updating Temporal Knowledge Graphs (TKGs) from unstructured texts.
+
 ## Overview
 
-iText2KG is a Python package designed to incrementally construct consistent knowledge graphs with resolved entities and relations by leveraging large language models for entity and relation extraction from text documents. It features zero-shot capability, allowing for knowledge extraction across various domains without specific training. The package includes modules for document distillation, entity extraction, and relation extraction, ensuring resolved and unique entities and relationships. It continuously updates the KG with new documents and integrates them into Neo4j for visual representation.
+ATOM (AdapTive and OptiMized) addresses key limitations in current zero- and few-shot TKG construction methods by:
 
-## 🔥 News
-* [29/07/2025] New Features and Enhanced Capabilities:
-  - **iText2KG_Star**: Introduced a simpler and more efficient version of iText2KG that eliminates the separate entity extraction step. Instead of extracting entities and relations separately, iText2KG_Star directly extracts relationships from text, automatically deriving entities from those relationships. This approach is more efficient as it reduces processing time and token consumption and does not need to handle invented/isolated entities.
-  - **Facts-Based KG Construction**: Enhanced the framework with facts-based knowledge graph construction using the Document Distiller to extract structured facts from documents, which are then used for incremental KG building. This approach provides more exhaustive and precise knowledge graphs by focusing on factual information extraction.
-  - **Dynamic Knowledge Graphs**: iText2KG now supports building dynamic knowledge graphs that evolve over time. By leveraging the incremental nature of the framework and document snapshots with observation dates, users can track how knowledge changes and grows. See example: [Dynamic KG Construction](./examples/building_dynamic_kg_openai_posts.ipynb). **NB: The temporal/logical conflicts resolution is not handled in this version. But you can apply a post processing filter to resolve them**
+- ✅ **Improving exhaustivity**: Capturing comprehensive fact coverage from longer texts (~31% gain on factual exhaustivity)
+- ✅ **Ensuring stability**: Producing consistent TKGs across multiple runs (~17% improvement)
+- ✅ **Enabling scalability**: Supporting large-scale dynamic temporal updates through parallel architecture (93.8% latency reduction vs. Graphiti)
 
-* [19/07/2025] Major Performance and Reliability Updates:
-  - **Asynchronous Architecture**: Complete migration to async/await patterns for all core methods (`build_graph`, `extract_entities`, `extract_relations`, etc.) enabling better performance and non-blocking I/O operations with LLM APIs.
-  - **Logging System**: Implemented comprehensive logging infrastructure to replace all print statements with structured, configurable logging (DEBUG, INFO, WARNING, ERROR levels) with timestamps and module identification.
-  - **Enhanced Batch Processing**: Improved efficiency through async batch processing for multiple document handling and LLM API calls.
-  - **Better Error Handling**: Enhanced error handling and retry mechanisms with proper logging for production environments.
+## Key Features
 
-* [07/10/2024] Latest features:
-  - The entire iText2KG code has been refactored by adding data models that describe an Entity, a Relation, and a KnowledgeGraph.
-  - Each entity is embedded using both its name and label to avoid merging concepts with similar names but different labels. For example, Python:Language and Python:Snake.
-    - The weights for entity name embedding and entity label are configurable, with defaults set to 0.4 for the entity label and 0.6 for the entity name.
-  - A max_tries parameter has been added to the iText2KG.build_graph function for entity and relation extraction to prevent hallucinatory effects in structuring the output. Additionally, a max_tries_isolated_entities parameter has been added to the same method to handle hallucinatory effects when processing isolated entities.
+### Atomic Fact Decomposition
+ATOM decomposes unstructured text into **atomic facts** - short, self-contained snippets that convey exactly one piece of information. This addresses the "forgetting effect" where LLMs prioritize salient information in longer contexts while omitting key relationships.
 
-* [17/09/2024] Latest features: 
-  - Now, iText2KG is compatible with all the chat/embeddings models supported by LangChain. For available chat models, refer to the options listed at: https://python.langchain.com/v0.2/docs/integrations/chat/. For embedding models, explore the choices at: https://python.langchain.com/v0.2/docs/integrations/text_embedding/.
+### Dual-Time Modeling
+ATOM incorporates dual-time modeling, differentiating between:
+- **Observation time** (`t_obs`): When facts are observed
+- **Validity period** (`t_start`, `t_end`): Temporal information conveyed by the facts themselves
 
-  - The constructed graph can be expanded by passing the already extracted entities and relationships as arguments to the `build_graph` function in iText2KG.
-  - iText2KG is compatible with all Python versions above 3.9.
+### Parallel Architecture
+The framework employs three modules running in parallel:
+1. **Module-1**: Atomic Fact Decomposition
+2. **Module-2**: Atomic TKGs Construction (parallel 5-tuple extraction)
+3. **Module-3**: Parallel Atomic Merge of TKGs and DTKG Update
+
+## Architecture
+
+ATOM employs a three-module parallel pipeline that constructs and continuously updates Dynamic Temporal Knowledge Graphs (DTKGs) from unstructured text. 
+
+**Module-1 (Atomic Fact Decomposition)** splits input documents `D_t` observed at time `t` into temporal atomic facts `{f_{t,1}, ..., f_{t,m_t}}` using LLM-based prompting with an optimal chunk size of <400 tokens, where each temporal atomic fact is a short, self-contained snippet that conveys exactly one piece of information. 
+
+**Module-2 (Atomic TKGs Construction)** extracts 5-tuples (quintuples) in parallel from each atomic fact `f_{t,i}` to construct atomic temporal KGs `G^t_i = ExtractQuintuplesLLM(f_{t,i}) ⊆ P(E^t × R^t × E^t × T^t_start × T^t_end)`, while embedding nodes and relations and addressing temporal resolution during extraction by transforming end validity facts into affirmative counterparts while modifying only the `t_end` time (e.g., "John Doe is no longer CEO of X on 01-01-2026" → `(John_Doe, is_ceo, X, [.], [01-01-2026])`). 
+
+**Module-3 (Parallel Atomic Merge)** employs a binary merge algorithm to merge pairs of atomic TKGs through iterative pairwise merging in parallel until convergence, with three resolution phases: (1) entity resolution using exact match or cosine similarity threshold `θ_E = 0.8`, (2) relation resolution merging relation names regardless of endpoints and timestamps using threshold `θ_R = 0.7`, and (3) temporal resolution that merges observation and validity time sets for relations with similar `(e_s, r_p, e_o)`. 
+
+The resulting TKG snapshot `G^t_s` is then merged with the previous DTKG `G^{t-1}` using the merge operator ⊕ to yield the updated DTKG: `G^t = G^{t-1} ⊕ G^t_s`. 
 
 
-* [16/07/2024] We have addressed two major LLM hallucination issues related to KG construction with LLMs when passing the entities list and context to the LLM. These issues are:
+<p align="center">
+  <img src="./docs/atom_architecture.png" width="800px" alt="ATOM Architecture">
+</p>
 
-  - The LLM might invent entities that do not exist in the provided entities list. We handled this problem by replacing the invented entities with the most similar ones from the input entities list.
-  - The LLM might fail to assign a relation to some entities from the input entities list, causing a "forgetting effect." We handled this problem by reprompting the LLM to extract relations for those entities.
+---
+## The prompts
+
+### Atomic Facts Decomposition
+It is performed using the object `AtomicFact` in `atom/models/schemas.py`
+
+```
+You are an expert factoid extraction engine. Your primary function is to read a news paragraph and its associated observation date, and then decompose the text into a comprehensive list of atomic, self-contained, and temporally-grounded facts.
+
+## Task
+Given an input paragraph and an `observation_date`, generate a list of all distinctatomic factspresent in the text.
+
+## Guidelines for Generating Temporal Factoids
+
+### 1. Atomic Factoids
+- Convert compound or complex sentences into short, single-fact statements
+- Each factoid must contain exactly one piece of information or relationship
+- Ensure that each factoid is expressed directly and concisely, without redundancies or duplicating the same information across multiple statements
+- **Example:** "Unsupervised learning is dedicated to discovering intrinsic patterns in unlabeled datasets" becomes "Unsupervised learning discovers patterns in unlabeled data"
+
+### 2. Decontextualization
+- Replace pronouns (e.g., "it," "he," "they") with the full entity name or a clarifying noun phrase
+- Include any necessary modifiers so that each factoid is understandable in isolation
+
+### 3. Temporal Context
+- Convert ALL time references to absolute dates/times using the observation_date
+
+#### Conversion Rules:
+- "today" → exact observation_date
+- "yesterday" → observation_date minus 1 day
+- "this week" → Monday of observation_date's week
+- "last week" → Monday of the week before observation_date
+- "this month" → first day of observation_date's month
+- "last month" → first day of the month before observation_date
+- "this year" → January 1st of observation_date's year
+- "last year" → January 1st of the year before observation_date
+- Keep explicit dates as-is (e.g., "June 18, 2024")
+
+#### Additional Temporal Guidelines:
+- Position time references naturally within factoids
+- Split sentences with multiple time references into separate factoids
+- **NEVER include relative terms like "today," "yesterday," "last week" in the final factoids**
+
+### 4. Accuracy & Completeness
+- Preserve the original meaning without combining multiple facts into a single statement
+- Avoid adding details not present in the source text
+
+### 5. End Actions
+- If the text indicates the end of a role or an action (for example, someone leaving a position), be explicit about the role/action and the time it ended
+
+### 6. Redundancies
+- Eliminate redundancies by simplifying phrases
+- **Example:** Convert "the method is crucial for maintaining X" into "the method maintains X"
+
+## Example
+
+**Input:** "On June 18, 2024, Real Madrid won the Champions League final with a 2-1 victory. Following the triumph, fans of Real Madrid celebrated the Champions League victory across the city."
+
+**Output:**
+- Real Madrid won the Champions League final on June 18, 2024
+- The Champions League final ended with a 2-1 victory for Real Madrid on June 18, 2024
+- Fans of Real Madrid celebrated the Champions League victory across the city on June 18, 2024
+```
+### 5-tuples Extraction
+It is performed using the object `RelationshipsExtractor` in `atom/models/schemas.py`
+```
+Observation Time : {obs_timestamp}
+
+You are a top-tier algorithm designed for extracting information in structured 
+formats to build a knowledge graph.
+Try to capture as much information from the text as possible without 
+sacrificing accuracy. Do not add any information that is not explicitly mentioned in the text
+Remember, the knowledge graph should be coherent and easily understandable, 
+so maintaining consistency in entity references is crucial.
+
+Few Shot Examples \n
+
+* Michel served as CFO at Acme Corp from 2019 to 2021. He was hired by Beta Inc in 2021, but left that role in 2023.
+-> (Michel, is_CFO_of, Acme Corp, ["01-01-2019"], ["01-01-2021"]), (Michel, works_at, Beta Inc, ["01-01-2021"], ["01-01-2023"])
+
+* Subsequent experiments confirmed the role of microRNAs in modulating cell growth.
+-> (Experiments, confirm_role_of, microRNAs, [], []), (microRNAs, modulate, Cell Growth, [], [])
+
+* Researchers used high-resolution imaging in a study on neural plasticity.
+-> (Researchers, use, High-Resolution Imaging, [], []), (High-Resolution Imaging, is_used_in, Study on Neural Plasticity, [], [])
+
+* Sarah was a board member of GreenFuture until 2019.
+-> (Sarah, is_board_member_of, GreenFuture, [], ["01-01-2019"])
+
+* Dr. Lee was the head of the Oncology Department until 2022.
+-> (Dr. Lee, is_head_of, Oncology Department, [], ["01-01-2022"])
+
+* Activity-dependent modulation of receptor trafficking is crucial for maintaining synaptic efficacy.
+-> (Activity-Dependent Modulation, involves, Receptor Trafficking, [], []), (Receptor Trafficking, maintains, Synaptic Efficacy, [], [])
+
+* (observation_date = 2024-06-15) John Doe is no longer the CEO of GreenIT a few months ago.
+-> (John Doe, is_CEO_of, GreenIT, [], ["2024-03-15"])
+# "a few months ago" ≈ 3 months → 2024-06-15 minus 3 months = 2024-03-15
+
+* John Doe's marriage is happening on 26-02-2026.
+-> (John Doe, has_status, Married, ["2026-02-26"], [])
+
+* (observation_date = 2024-03-20) The AI Summit conference started yesterday and will end tomorrow.
+-> (AI Summit, has_status, Started, ["2024-03-19"], ["2024-03-21"])
+
+* The independence day of Morocco is celebrated on January 1st each year since 1956.
+-> (Morocco, celebrates, Independence Day, ["1956-01-01"], [])
+
+* (observation_date = 2024-08-10) The product launch event is scheduled for next month.
+-> (Product Launch, has_status, Scheduled, ["2024-09-01"], [])
+# "next month" = first day of September 2024
+
+```
+
+---
+## Example of the ATOM Workflow
+
+ On observation date 09-01-2007, ATOM processes the fact "Steve Jobs was the CEO of Apple Inc. on January 9, 2007" to create the 5-tuple `(Steve Jobs, is_ceo, Apple Inc., [09-01-2007], [.])` where `t_start = [09-01-2007]` and `t_end = [.]` (empty/unknown). Later, on observation date 05-10-2011, when processing the incoming update "Steve Jobs is no longer the CEO of Apple Inc. on 05-10-2011", ATOM's Module-2 transforms this **end validity fact** into its affirmative counterpart while modifying only the `t_end` time, producing `(Steve Jobs, is_ceo, Apple Inc., [.], [05-10-2011])` rather than creating a contradictory relation like `is_no_longer_ceo`. During Module-3's temporal resolution phase, ATOM detects that both 5-tuples share the same `(e_s, r_p, e_o)` triple and merges their time lists to produce the final 5-tuple: `(Steve Jobs, is_ceo, Apple Inc., [09-01-2007], [05-10-2011])`, which correctly represents that Steve Jobs was CEO from January 9, 2007 to October 5, 2011, while maintaining dual-time modeling with `t_obs = [09-01-2007, 05-10-2011]` to track when each piece of information was observed. This preprocessing of end-actions during extraction enables ATOM's LLM-independent merging approach, preventing temporal inconsistencies where separate quintuples describing the same temporal fact would coexist in the TKG.
+
+
+<p align="center">
+  <img src="./docs/example_atom.png" width="800px" alt="ATOM Workflow Diagram">
+</p>
+
+For more technical details, check out:
+- **`atom/atom.py`**: Core logic for building, merging, and updating the knowledge graphs.
+- **`evaluation/`**: Scripts to reconduct the experiments. 
+
+---
+
+## Latency & Scalability
+
+ATOM achieves significant latency reduction of 93.8% compared to Graphiti and 95.3% compared to iText2KG by employing a parallel architecture that addresses computational bottlenecks in traditional approaches. While iText2KG and Graphiti separate entity and relation extraction steps (increasing latency and doubling LLM calls), and use incremental entity/relation resolution that restricts parallel requests (with Graphiti's LLM-based resolution limiting parallelization as the graph scales to millions of nodes), ATOM's architecture facilitates (1) parallel LLM calls for 5-tuple extraction using 8 threads with batch size of 40 atomic facts, (2) parallel merge of atomic TKGs through iterative pairwise merging, (3) LLM-independent merging using distance metrics for entity/relation resolution, and (4) temporal resolution during extraction rather than during merging. Notably, Module-3 (the parallel atomic merge) accounts for only 13% of ATOM's total latency, with the remainder attributed to API calls—which can be further minimized by leveraging the parallel architecture through either increasing the batch size (by upgrading the API tier) or scaling hardware for local LLM deployment
+
+<p align="center">
+  <img src="./docs/latency_comparison_plot.png" width="800px" alt="Latency Comparison">
+</p>
+
+---
+
+## Results
+
+Empirical evaluations demonstrate that ATOM's atomic fact decomposition improves temporal exhaustivity by ~18% and factual exhaustivity by ~31% compared to direct lead paragraph extraction, with ~31% reduction in factual omission and ~17% improvement in stability across multiple runs, though at the cost of a ~9% increase in hallucination rate due to LLM-inferred atomic facts. The parallel architecture enables 93.8% latency reduction versus Graphiti and 95.3% versus iText2KG, demonstrating ATOM's scalability for large-scale dynamic TKG construction. For DTKG construction, ATOM outperforms Graphiti and iText2KG for entity resolution/relation resolution.
+---
+
+## Example
+
+The following figure demonstrates the difference between ATOM's and Graphiti's temporal modeling using COVID-19 news from 09-01-2020 to 23-01-2020. For the fact "The mysterious respiratory virus spread to at least 10 other countries" observed on 23-01-2020, Graphiti treats the observation time as the validity start time (t_start), setting `valid_at = 23-01-2020` and implying the spread occurred on that specific date. In contrast, ATOM's dual-time modeling preserves the observation time (t_obs = 23-01-2020) separately from the validity period, recognizing that the article was published on 23-01-2020 but this does not guarantee the spread occurred at that exact time—the spread could have happened days or weeks earlier. This distinction is essential for temporal reasoning: Graphiti would infer that all events in a news article happened on the publication date, while ATOM correctly models when information was observed versus when events actually occurred. This prevents temporal misattribution in dynamic knowledge graphs.
+
+<p align="center">
+  <img src="./docs/comparison_example.png" width="800px" alt="OpenAI posts DTKG">
+</p>
+
 
 
 ## Installation
 
-To install iText2KG, ensure you have **Python 3.9 or higher** installed (required for async/await functionality), then use pip to install:
+1. **Clone or Fork** the repository:
+   ```bash
+   git clone https://github.com/geeekai/atom.git
+   cd atom
+
+
+2. **Install Requirements**
+
+Install all dependencies by running:
 
 ```bash
-pip install itext2kg
+pip install -r requirements.txt
 ```
 
-## The Overall Architecture
+3. **(Optional) Set Up a Virtual Environment**
+It is recommended to use a virtual environment (e.g., conda, venv) to isolate dependencies.
 
-The ```iText2KG``` package consists of four main modules that work together to construct and visualize knowledge graphs from unstructured text. An overview of the overall architecture:
+# Example: Building a Temporal Knowledge Graph (TKG) with ATOM from LLMS History
 
-1. **Document Distiller**: This module processes raw documents and reformulates them into semantic blocks based on a user-defined schema. It improves the signal-to-noise ratio by focusing on relevant information and structuring it in a predefined format. 
+In this example, we demonstrate how to use ATOM to extractatomic factsfrom a dataset, build a dynamic Temporal Knowledge Graph (TKG) across different observation timestamps, and finally visualize the graph using Neo4j.
 
-2. **Incremental Entity Extractor**: This module extracts unique entities from the semantic blocks and resolves ambiguities to ensure each entity is clearly defined. It uses cosine similarity measures to match local entities with global entities.
+The process involves:
+1. **Loading Data**: Reading an Excel file containing LLMS history with associated observation dates.
+2. **Factoid Extraction**: Using the `LangchainOutputParser` to extractatomic factsfrom the text.
+3. **Graph Construction**: Groupingatomic factsby observation date and building a knowledge graph that merges atomic KGs from different timestamps.
+4. **Visualization**: Rendering the final graph using the GraphIntegrator module connected to a Neo4j database.
 
-3. **Incremental Relation Extractor**: This module identifies relationships between the extracted entities. It can operate in two modes: using global entities to enrich the graph with potential information or using local entities for more precise relationships. 
+Below is the derived example code:
 
-4. **Graph Integrator and Visualization**: This module integrates the extracted entities and relationships into a Neo4j database, providing a visual representation of the knowledge graph. It allows for interactive exploration and analysis of the structured data.
-
-![itext2kg](./docs/itext2kg.png)
-
-The LLM is prompted to extract entities representing one unique concept to avoid semantically mixed entities. The following figure presents the entity and relation extraction prompts using the Langchain JSON Parser. They are categorized as follows: Blue - prompts automatically formatted by Langchain; Regular - prompts we have designed; and Italic - specifically designed prompts for entity and relation extraction. (a) prompts for relation extraction and (b) prompts for entity extraction.
-
-![prompts](./docs/prompts_.png)
-
-## Modules and Examples
-All the examples are provided in the following jupyter notebooks:
-- [Different LLM Models](./examples/different_llm_models.ipynb) - Basic usage with various language models
-- [Dynamic Knowledge Graphs](./examples/building_dynamic_kg_openai_posts.ipynb) - Building evolving KGs with temporal context
-- Additional examples showcasing facts extraction, iText2KG_Star, and more advanced features
-
-Now, iText2KG is compatible with all language models supported by LangChain.
-
-To use iText2KG, you will need both a chat model and an embeddings model.
-
-For available chat models, refer to the options listed at: https://python.langchain.com/v0.2/docs/integrations/chat/. For embedding models, explore the choices at: https://python.langchain.com/v0.2/docs/integrations/text_embedding/.
-
-Please ensure that you install the necessary package for each chat model before use.
-
-#### Mistral
-
-
-For Mistral, please set up your model using the tutorial here: https://python.langchain.com/v0.2/docs/integrations/chat/mistralai/. Similarly, for the embedding model, follow the setup guide here: https://python.langchain.com/v0.2/docs/integrations/text_embedding/mistralai/ .
+---
 
 ```python
-from langchain_mistralai import ChatMistralAI
-from langchain_mistralai import MistralAIEmbeddings
+import pandas as pd
+import asyncio
+import ast
 
-mistral_api_key = "##"
-mistral_llm_model = ChatMistralAI(
-    api_key = mistral_api_key,
-    model="mistral-large-latest",
-    temperature=0,
-    max_retries=2,
-)
-
-
-mistral_embeddings_model = MistralAIEmbeddings(
-    model="mistral-embed",
-    api_key = mistral_api_key
-)
-```
-
-The Document Distiller module reformulates raw documents into predefined and semantic blocks using LLMs. It utilizes a schema to guide the extraction of specific information from each document.
-
-#### OpenAI
-The same applies for OpenAI.
-
-please setup your model using the tutorial : https://python.langchain.com/v0.2/docs/integrations/chat/openai/ The same for embedding model : https://python.langchain.com/v0.2/docs/integrations/text_embedding/openai/
-
-```python
+# Import LLM and Embeddings models using LangChain wrappers
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from atom import Atom, Neo4jStorage
 
+# Set up the OpenAI LLM and embeddings models (replace "##" with your API key)
 openai_api_key = "##"
-
-openai_llm_model = llm = ChatOpenAI(
-    api_key = openai_api_key,
-    model="gpt-4o",
+openai_llm_model = ChatOpenAI(
+    api_key=openai_api_key,
+    model="gpt-4.1-2025-04-14",
     temperature=0,
     max_tokens=None,
     timeout=None,
@@ -141,350 +263,49 @@ openai_llm_model = llm = ChatOpenAI(
 )
 
 openai_embeddings_model = OpenAIEmbeddings(
-    api_key = openai_api_key ,
+    api_key=openai_api_key,
     model="text-embedding-3-large",
 )
-```
 
-### The ```DocumentDistiller```
+# Load the 2020-COVID-NYT dataset pickle
+news_covid = pd.read_pickle("../datasets/nyt_news/2020_nyt_COVID_last_version_ready.pkl")
 
-Example
+# Define a helper function to convert the dataframe'satomic factsinto a dictionary,
+# where keys are observation dates and values are the combined list ofatomic factsfor that date.
+def to_dictionary(df): 
 
-```python
-import asyncio
-from itext2kg import DocumentDistiller
-# You can define a schema or use the predefined ones from schemas.py
-from itext2kg.models.schemas import Article
-
-async def main():
-    # Initialize the DocumentDistiller with llm model.
-    document_distiller = DocumentDistiller(llm_model = openai_llm_model)
-
-    # List of documents to be distilled.
-    documents = ["doc1", "doc2", "doc3"]
-
-    # Information extraction query.
-    IE_query = '''
-    # DIRECTIVES : 
-    - Act like an experienced information extractor. 
-    - You have a chunk of a scientific paper.
-    - If you do not find the right information, keep its place empty.
-    '''
-
-    # Distill the documents using the defined query and output data structure.
-    # Note: distill() is now async and requires await
-    distilled_doc = await document_distiller.distill(documents=documents, IE_query=IE_query, output_data_structure=Article)
-    
-    return distilled_doc
-
-# Run the async function
-distilled_doc = asyncio.run(main())
-```
-The schema depends on the user's specific requirements, as it outlines the essential components to extract or emphasize during the knowledge graph construction. Since there is no universal blueprint for all use cases, its design is subjective and varies by application or context. This flexibility is crucial to making the ```iText2KG``` method adaptable across a wide range of scenarios.
-
-You can define a custom schema using  ```pydantic```. Some example schemas are available in [models/schemas.py](./itext2kg/models/schemas.py). You can use these or create new ones depending on your use-case. 
-
-
-```python
-from typing import List, Optional
-from pydantic import BaseModel, Field
-
-# Define an Author model with name and affiliation fields.
-class Author(BaseModel):
-    name: str = Field(description="The name of the author")
-    affiliation: str = Field(description="The affiliation of the author")
-    
-# Define an Article model with various fields describing a scientific article.
-class Article(BaseModel):
-    title: str = Field(description="The title of the scientific article")
-    authors: List[Author] = Field(description="The list of the article's authors and their affiliation")
-    abstract: str = Field(description="The article's abstract")
-    key_findings: str = Field(description="The key findings of the article")
-    limitation_of_sota: str = Field(description="limitation of the existing work")
-    proposed_solution: str = Field(description="The proposed solution in details")
-    paper_limitations: str = Field(description="The limitations of the proposed solution of the paper")
-
-```
-
-
-### Facts-Based Knowledge Graph Construction
-
-For more exhaustive knowledge graphs, you can use facts-based construction by extracting structured facts from documents first, then using these facts for KG building:
-
-```python
-import asyncio
-from itext2kg import DocumentDistiller
-from itext2kg.models.schemas import Facts
-
-async def extract_facts():
-    # Initialize the DocumentDistiller
-    document_distiller = DocumentDistiller(llm_model=openai_llm_model)
-    
-    # Your documents
-    documents = ["OpenAI announced ChatGPT agent with new capabilities...", 
-                 "The new model can perform complex tasks autonomously..."]
-    
-    # Extract facts from each document
-    IE_query = '''
-    # DIRECTIVES : 
-    - Act like an experienced information extractor. 
-    - Extract clear, factual statements from the text.
-    '''
-    
-    facts_list = await asyncio.gather(*[
-        document_distiller.distill(
-            documents=[doc], 
-            IE_query=IE_query, 
-            output_data_structure=Facts
-        ) for doc in documents
-    ])
-    
-    return facts_list
-
-# Run the async function
-facts = asyncio.run(extract_facts())
-```
-
-### The ```iText2KG_Star``` (Recommended)
-
-iText2KG_Star is a simpler and more efficient version that directly extracts relationships from text and automatically derives entities from those relationships, eliminating the separate entity extraction step:
-
-```python
-import asyncio
-from itext2kg import iText2KG_Star
-from itext2kg.logging_config import setup_logging, get_logger
-
-# Optional: Configure logging
-setup_logging(level="INFO", log_file="itext2kg.log")
-logger = get_logger(__name__)
-
-async def build_knowledge_graph_star():
-    # Initialize iText2KG_Star with the llm model and embeddings model
-    itext2kg_star = iText2KG_Star(llm_model=openai_llm_model, embeddings_model=openai_embeddings_model)
-
-    # Your text sections (can be facts from document distiller or raw text)
-    sections = [
-        "OpenAI announced ChatGPT agent with new capabilities for autonomous task execution.",
-        "The new model integrates browser tools and terminal access for comprehensive automation.",
-        "ChatGPT agent is rolling out to Pro, Plus, and Team users with enhanced safety measures."
-    ]
-
-    logger.info("Starting knowledge graph construction with iText2KG_Star...")
-    
-    # Build the knowledge graph - entities are automatically derived from relationships
-    kg = await itext2kg_star.build_graph(
-        sections=sections,
-        ent_threshold=0.8,      # Higher threshold for more distinct entities
-        rel_threshold=0.7,      # Threshold for relationship merging
-        observation_date="2025-01-15"  # Optional: add temporal context
-    )
-    
-    logger.info(f"Knowledge graph completed! Entities: {len(kg.entities)}, Relationships: {len(kg.relationships)}")
-    return kg
-
-# Run the async function
-kg = asyncio.run(build_knowledge_graph_star())
-```
-
-### The ```iText2KG```
-The iText2KG module is the original component of the package, responsible for integrating various functionalities to construct the knowledge graph. It uses the distilled semantic sections from documents to extract entities and relationships separately, and then builds the knowledge graph incrementally. 
-
-Although it is highly recommended to pass the documents through the ```Document Distiller``` module, it is not required for graph creation. You can directly pass your chunks into the ```build_graph``` function of the ```iText2KG``` class; however, your graph may contain some noisy information.
-
-```python
-import asyncio
-from itext2kg import iText2KG
-from itext2kg.logging_config import setup_logging, get_logger
-
-# Optional: Configure logging
-setup_logging(level="INFO", log_file="itext2kg.log")
-logger = get_logger(__name__)
-
-async def build_knowledge_graph():
-    # Initialize iText2KG with the llm model and embeddings model.
-    itext2kg = iText2KG(llm_model = openai_llm_model, embeddings_model = openai_embeddings_model)
-
-    # Format the distilled document into semantic sections.
-    semantic_blocks = [f"{key} - {value}".replace("{", "[").replace("}", "]") for key, value in distilled_doc.items()]
-
-    logger.info("Starting knowledge graph construction...")
-    
-    # Build the knowledge graph using the semantic sections.
-    # Note: build_graph() is now async and requires await
-    kg = await itext2kg.build_graph(sections=semantic_blocks)
-    
-    logger.info("Knowledge graph construction completed successfully!")
-    return kg
-
-# Run the async function
-kg = asyncio.run(build_knowledge_graph())
-```
-
-### Arguments
-
-The Arguments of ```iText2KG_Star``` (Recommended):
-
-- `llm_model`: The language model instance to be used for extracting relationships directly from text.
-- `embeddings_model`: The embeddings model instance to be used for creating vector representations of entities and relationships.
-- `sleep_time (int)`: The time to wait (in seconds) when encountering rate limits or errors. Defaults to 5 seconds.
-
-The Arguments of ```iText2KG_Star``` method ```build_graph```:
-
-- `sections (List[str])`: A list of strings where each string represents a section of the document from which relationships will be extracted and entities derived.
-- `existing_knowledge_graph (KnowledgeGraph, optional)`: An existing knowledge graph to merge with. Default is None.
-- `ent_threshold (float, optional)`: The threshold for entity matching when merging sections. Default is 0.7.
-- `rel_threshold (float, optional)`: The threshold for relationship matching when merging sections. Default is 0.7.
-- `max_tries (int, optional)`: The maximum number of attempts to extract relationships. Defaults to 5.
-- `entity_name_weight (float)`: The weight of the entity name in matching. Default is 0.6.
-- `entity_label_weight (float)`: The weight of the entity label in matching. Default is 0.4.
-- `observation_date (str)`: Observation date to add to relationships for temporal tracking. Defaults to "".
-
-The Arguments of ```iText2KG```:
-
-- `llm_model`: The language model instance to be used for extracting entities and relationships from text.
-- `embeddings_model`: The embeddings model instance to be used for creating vector representations of extracted entities.
-- `sleep_time (int)`: The time to wait (in seconds) when encountering rate limits or errors (for OpenAI only). Defaults to 5 seconds.
-
-The Argument of ```iText2KG``` method ```build_graph```:
-
-- `sections (List[str])`: A list of strings (semantic blocks) where each string represents a section of the document from which entities and relationships will be extracted.
-- `ent_threshold (float, optional)`: The threshold for entity matching, used to merge entities from different sections. Default is 0.7.
-- `rel_threshold (float, optional)`: The threshold for relationship matching, used to merge relationships from different sections. Default is 0.7.
-- `existing_knowledge_graph (KnowledgeGraph, optional)`: An existing knowledge graph to merge the newly extracted entities and relationships into. Default is None.
-- `entity_name_weight (float)`: The weight of the entity name in the entity embedding process. Default is 0.6.
-- `entity_label_weight (float)`: The weight of the entity label in the entity embedding process. Default is 0.4.
-- `max_tries (int, optional)`: The maximum number of attempts to extract entities and relationships. Defaults to 5.
-- `max_tries_isolated_entities (int, optional)`: The maximum number of attempts to process isolated entities  (entities without relationships). Defaults to 3.
-- `observation_date (str)`: Observation date to add to relationships for temporal tracking. Defaults to "".
-
-### Dynamic Knowledge Graph Construction
-
-Build knowledge graphs that evolve over time by processing documents with temporal context:
-
-```python
-import asyncio
-from itext2kg import DocumentDistiller, iText2KG_Star
-from itext2kg.models.schemas import Facts
-
-async def build_dynamic_knowledge_graph():
-    # Initialize components
-    document_distiller = DocumentDistiller(llm_model=openai_llm_model)
-    itext2kg_star = iText2KG_Star(llm_model=openai_llm_model, embeddings_model=openai_embeddings_model)
-    
-    # Sample time-series data (e.g., social media posts, news articles, reports)
-    time_series_data = [
-        {
-            "observation_date": "2025-01-15",
-            "content": "OpenAI announced ChatGPT agent with autonomous task execution capabilities."
-        },
-        {
-            "observation_date": "2025-01-16", 
-            "content": "ChatGPT agent now integrates browser tools and terminal access for enhanced automation."
-        },
-        {
-            "observation_date": "2025-01-17",
-            "content": "The new agent is rolling out to Pro, Plus, and Team users with enhanced safety measures."
+    if isinstance(df['factoids_g_truth'][0], str):
+        df["factoids_g_truth"] = df["factoids_g_truth"].apply(lambda x:ast.literal_eval(x))
+    grouped_df = df.groupby("date")["factoids_g_truth"].sum().reset_index()
+    return {
+        str(date): factoids for date, factoids in grouped_df.set_index("date")["factoids_g_truth"].to_dict().items()
         }
-    ]
-    
-    # Extract facts from each time point
-    IE_query = '''
-    # DIRECTIVES : 
-    - Act like an experienced information extractor.
-    - Extract clear, factual statements from the text.
-    '''
-    
-    # Process first document to initialize the KG
-    facts_0 = await document_distiller.distill(
-        documents=[time_series_data[0]["content"]], 
-        IE_query=IE_query, 
-        output_data_structure=Facts
-    )
-    
-    # Build initial knowledge graph
-    kg = await itext2kg_star.build_graph(
-        sections=facts_0.facts,
-        observation_date=time_series_data[0]["observation_date"],
-        ent_threshold=0.8,
-        rel_threshold=0.7
-    )
-    
-    # Incrementally update with subsequent documents
-    for i in range(1, len(time_series_data)):
-        print(f"Processing document {i+1} from {time_series_data[i]['observation_date']}")
-        
-        # Extract facts from current document
-        facts = await document_distiller.distill(
-            documents=[time_series_data[i]["content"]], 
-            IE_query=IE_query, 
-            output_data_structure=Facts
-        )
-        
-        # Update the knowledge graph incrementally
-        kg = await itext2kg_star.build_graph(
-            sections=facts.facts,
-            observation_date=time_series_data[i]["observation_date"],
-            existing_knowledge_graph=kg.model_copy(),  # Pass existing KG for incremental updates
-            ent_threshold=0.8,
-            rel_threshold=0.7
-        )
-    
-    print(f"Dynamic KG completed! Entities: {len(kg.entities)}, Relationships: {len(kg.relationships)}")
-    
-    # Each relationship now contains observation_dates showing when it was first observed
-    for rel in kg.relationships:
-        if rel.properties.observation_dates:
-            print(f"Relationship '{rel.name}' first observed: {rel.properties.observation_dates[0]}")
-    
-    return kg
 
-# Run the dynamic KG construction
-dynamic_kg = asyncio.run(build_dynamic_knowledge_graph())
-```
+# Convert the dataframe into the required dictionary format
+news_covid_dict = to_dictionary(news_covid)
 
-For a complete example of dynamic KG construction from social media posts, see: [Dynamic KG Construction Example](./examples/building_dynamic_kg_openai_posts.ipynb)
+# Initialize the ATOM pipeline with the OpenAI models
+atom = Atom(llm_model=openai_llm_model, embeddings_model=openai_embeddings_model)
 
-## The ```GraphIntegrator```
-It integrates the extracted entities and relationships into a Neo4j graph database and provides a visualization of the knowledge graph. This module allows users to easily explore and analyze the structured data using Neo4j's graph capabilities.
+# Build the knowledge graph across different observation timestamps
+kg = await atom.build_graph_from_different_obs_times(
+    atomic_facts_with_obs_timestamps=news_covid_dict,
+    
+)
 
-```python
-from itext2kg.graph_integration import Neo4jStorage
-
+# Visualize the resulting knowledge graph using Neo4j
 URI = "bolt://localhost:7687"
 USERNAME = "neo4j"
-PASSWORD = "###"
-
-# Note: Graph visualization remains synchronous
-graph_integrator = Neo4jStorage(uri=URI, username=USERNAME, password=PASSWORD)
-graph_integrator.visualize_graph(knowledge_graph=kg)
+PASSWORD = "##"
+Neo4jStorage(uri=URI, username=USERNAME, password=PASSWORD).visualize_graph(knowledge_graph=kg)
 ```
 
 
-## Some ```iText2KG``` use-cases
+# Contributing
 
-In the figure below, we have constructed a KG for the article [seasonal](./datasets/scientific_articles/seasonal.pdf) and for the company [company](https://auvalie.com/), with its permission to publish it publicly. Additionally, the Curriculum Vitae (CV) KG is based on the following generated [CV](./datasets/cvs/CV_Emily_Davis.pdf).
+We welcome contributions! To help improve ATOM:
+	1.	Fork this repository to your GitHub account.
+	2.	Create a feature branch with your enhancements or bug fixes.
+	3.	Submit a pull request detailing the changes.
 
-![text2kg](./docs/text_2_kg.png)
-
-## Dataset
-The dataset consists of five generated CVs using GPT-4, five randomly selected scientific articles representing various domains of study with diverse structures, and five company websites from different industries of varying sizes. Additionally, we have included distilled versions of the CVs and scientific articles based on predefined schemas.
-
-Another dataset has been added, consisting of 1,500 similar entity pairs and 500 relationships, inspired by various domains (e.g., news, scientific articles, HR practices), to estimate the threshold for merging entities and relationships based on cosine similarity.
-
-## Public Collaboration
-We welcome contributions from the community to improve iText2KG.
-
-## Citation
-```bibtex
-@article{lairgi2024itext2kg,
-  title={iText2KG: Incremental Knowledge Graphs Construction Using Large Language Models},
-  author={Lairgi, Yassir and Moncla, Ludovic and Cazabet, R{\'e}my and Benabdeslem, Khalid and Cl{\'e}au, Pierre},
-  journal={arXiv preprint arXiv:2409.03284},
-  year={2024},
-  note={Accepted at The International Web Information Systems Engineering conference (WISE) 2024},
-  url={https://arxiv.org/abs/2409.03284},
-  eprint={2409.03284},
-  archivePrefix={arXiv},
-  primaryClass={cs.AI}
-}
-```
+Please report any issues via the Issues tab. Community feedback is invaluable!
