@@ -1,5 +1,11 @@
 # ATOM: AdapTive and OptiMized Dynamic Temporal Knowledge Graph Construction Using LLMs
 
+<p align="center">
+  <img src="./docs/banner-atom.png" width="800px" alt="ATOM Banner">
+</p>
+
+
+
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
 <p align="center">
