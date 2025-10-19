@@ -1,7 +1,7 @@
 # ATOM: AdapTive and OptiMized Dynamic Temporal Knowledge Graph Construction Using LLMs
 
 <p align="center">
-  <img src="./docs/banner-atom.png" width="800px" alt="ATOM Banner">
+  <img src="./docs/banner-atom.png" width="851px" alt="ATOM Banner">
 </p>
 
 
