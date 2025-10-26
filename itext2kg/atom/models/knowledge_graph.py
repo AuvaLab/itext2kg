@@ -1,8 +1,8 @@
 import numpy as np
 from typing import Callable, List, Union, Optional, Awaitable
 from pydantic import BaseModel, Field, ConfigDict
-from atom.models.entity import Entity, EntityProperties
-from atom.models.relationship import Relationship, RelationshipProperties
+from itext2kg.atom.models.entity import Entity, EntityProperties
+from itext2kg.atom.models.relationship import Relationship, RelationshipProperties
 
 # -------------------------------------------
 # Create a common base model class
@@ -69,7 +69,7 @@ class KnowledgeGraph(BaseModelWithConfig):
     def add_t_obs_to_relationships(self, t_obs:Union[List[float], List[str]]) -> None:
         """Adds t_obs to relationships."""
         for rel in self.relationships:
-            rel.combine_timestamps(t_obs=t_obs, temporal_aspect="t_obs")
+            rel.combine_timestamps(timestamps=t_obs, temporal_aspect="t_obs")
     
     def add_atomic_facts_to_relationships(self, atomic_facts: List[str]) -> None:
         """Adds atomic facts to relationships."""

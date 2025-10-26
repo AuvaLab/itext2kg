@@ -1,9 +1,9 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Tuple, Union
-from atom.itext2kg.models import Entity, Relationship, KnowledgeGraph
-from atom.itext2kg.graph_matching.matcher_interface import GraphMatcherInterface
-from atom.logging_config import get_logger
+from itext2kg.itext2kg_star.models import Entity, Relationship, KnowledgeGraph
+from itext2kg.itext2kg_star.graph_matching.matcher_interface import GraphMatcherInterface
+from itext2kg.logging_config import get_logger
 
 logger = get_logger(__name__)
 

@@ -1,6 +1,6 @@
 from typing import List, Union, Any
 from pydantic import BaseModel
-from atom.llm_output_parsing.langchain_output_parser import LangchainOutputParser
+from itext2kg.llm_output_parsing.langchain_output_parser import LangchainOutputParser
 
 
 class DocumentsDistiller:

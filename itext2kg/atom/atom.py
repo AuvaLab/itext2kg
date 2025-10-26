@@ -1,14 +1,14 @@
-from atom.models import KnowledgeGraph, Entity, Relationship, RelationshipProperties
-from atom.graph_matching import GraphMatcher
-from atom.llm_output_parsing import LangchainOutputParser
-from atom.models.schemas import Relationship as RelationshipSchema
-from atom.models.schemas import RelationshipsExtractor
+from itext2kg.atom.models import KnowledgeGraph, Entity, Relationship, RelationshipProperties
+from itext2kg.atom.graph_matching import GraphMatcher
+from itext2kg.llm_output_parsing import LangchainOutputParser
+from itext2kg.atom.models.schemas import Relationship as RelationshipSchema
+from itext2kg.atom.models.schemas import RelationshipsExtractor
 import concurrent.futures
 from typing import List, Optional
-from atom.models.prompts import Prompt
+from itext2kg.atom.models.prompts import Prompt
 from dateutil import parser
 import asyncio
-from atom.logging_config import get_logger
+from itext2kg.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -143,7 +143,7 @@ class Atom:
 
         kg = KnowledgeGraph(entities=temp_kg.entities, relationships=embedded_relationships)
         await kg.embed_relationships(embeddings_function=self.llm_output_parser.calculate_embeddings)
-        # these lines are just to ensure there are no duplicates entities and relationships inside the same factoid.
+        # this line is just to ensure there are no duplicates entities and relationships inside the same factoid.
         atomic_kgs = kg.split_into_atomic_kgs()
         
         return self.parallel_atomic_merge(
@@ -178,9 +178,9 @@ class Atom:
             [ent_threshold for _ in relationships],
             [max_workers for _ in relationships])))
 
-        logger.info("------- Adding Source Context to Atomic KGs---------")
+        logger.info("------- Adding Atomic Facts to Atomic KGs---------")
         for atomic_kg, fact in zip(atomic_kgs, atomic_facts):
-            atomic_kg.add_sources_to_relationships(sources=[fact])
+            atomic_kg.add_atomic_facts_to_relationships(atomic_facts=[fact])
 
         logger.info("------- Merging Atomic KGs---------")
         cleaned_atomic_kgs = [kg for kg in atomic_kgs if kg.relationships != []]
@@ -190,8 +190,8 @@ class Atom:
         max_workers=max_workers
         )
 
-        logger.info("------- Adding Timestamps to Relationships---------")
-        merged_kg.add_timestamps_to_relationships(timestamps=[obs_timestamp])
+        logger.info("------- Adding Observation Timestamp to Relationships---------")
+        merged_kg.add_t_obs_to_relationships(t_obs=[obs_timestamp])
     
         if existing_knowledge_graph:
             global_entities, global_relationships = self.matcher.match_entities_and_update_relationships(entities_1=merged_kg.entities,
@@ -245,3 +245,4 @@ class Atom:
                                                           batch_size:int=40,
                                                           ):
         pass
+    

@@ -1,5 +1,5 @@
 from typing import List, Tuple, Protocol
-from atom.models import Entity, Relationship
+from itext2kg.itext2kg_star.models import Entity, Relationship
 
 class GraphMatcherInterface(Protocol):
     """
@@ -35,5 +35,4 @@ class GraphMatcherInterface(Protocol):
             - combined_relationships: Merged list of relationships with updated entity references
         """
         ...
-
 

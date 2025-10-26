@@ -1,9 +1,9 @@
 from neo4j import GraphDatabase
 import numpy as np
 from typing import List, Optional
-from atom.models import KnowledgeGraph
-from atom.graph_integration.storage_interface import GraphStorageInterface
-from atom.logging_config import get_logger
+from itext2kg.atom.models import KnowledgeGraph
+from itext2kg.graph_integration.storage_interface import GraphStorageInterface
+from itext2kg.logging_config import get_logger
 
 logger = get_logger(__name__)
 

@@ -2,6 +2,7 @@ name: Testing Core Components
 on:
   pull_request:
     paths:
+      - "atom/**"
       - "itext2kg/graph_matching/**"
       - "itext2kg/ientities_extraction/**"
       - "itext2kg/irelations_extraction/**"
@@ -13,6 +14,7 @@ on:
     branches:
       - "main"
     paths:
+      - "atom/**"
       - "itext2kg/graph_matching/**"
       - "itext2kg/ientities_extraction/**" 
       - "itext2kg/irelations_extraction/**"
@@ -64,6 +66,9 @@ jobs:
 
       - name: Test import of main components
         run: |
-          python -c "from itext2kg import iText2KG, iText2KG_Star; print('✅ Core imports successful')"
-          python -c "from itext2kg.graph_matching import Matcher; print('✅ Matcher import successful')"
-          python -c "from itext2kg.models import Entity, Relationship, KnowledgeGraph; print('✅ Models import successful')"
+          python -c "from itext2kg import iText2KG, iText2KG_Star; print('✅ iText2KG imports successful')"
+          python -c "from itext2kg.graph_matching import Matcher; print('✅ iText2KG Matcher import successful')"
+          python -c "from itext2kg.models import Entity, Relationship, KnowledgeGraph; print('✅ iText2KG Models import successful')"
+          python -c "from atom import Atom; print('✅ Atom import successful')"
+          python -c "from atom.models import Entity, Relationship, KnowledgeGraph; print('✅ Atom Models import successful')"
+          python -c "from atom.graph_matching import GraphMatcher; print('✅ Atom Matcher import successful')"

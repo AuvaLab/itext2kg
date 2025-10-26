@@ -1,8 +1,8 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity  # type: ignore
 from typing import List, Tuple
-from atom.models import Entity, Relationship, KnowledgeGraph
-from atom.graph_matching.matcher_interface import GraphMatcherInterface
+from itext2kg.atom.models import Entity, Relationship, KnowledgeGraph
+from itext2kg.atom.graph_matching.matcher_interface import GraphMatcherInterface
 import logging
 
 logger = logging.getLogger(__name__)

@@ -1,5 +1,5 @@
 from typing import Protocol
-from atom.models import KnowledgeGraph
+from itext2kg.atom.models import KnowledgeGraph
 
 class GraphStorageInterface(Protocol):
     """

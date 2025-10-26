@@ -1,10 +1,10 @@
 from typing import List
-from atom.itext2kg.ientities_extraction import iEntitiesExtractor
-from atom.itext2kg.irelations_extraction import iRelationsExtractor
-from atom.itext2kg.graph_matching import Matcher
-from atom.llm_output_parsing.langchain_output_parser import LangchainOutputParser
-from atom.itext2kg.models import KnowledgeGraph
-from atom.logging_config import get_logger
+from itext2kg.itext2kg_star.ientities_extraction import iEntitiesExtractor
+from itext2kg.itext2kg_star.irelations_extraction import iRelationsExtractor
+from itext2kg.itext2kg_star.graph_matching import Matcher
+from itext2kg.llm_output_parsing.langchain_output_parser import LangchainOutputParser
+from itext2kg.itext2kg_star.models import KnowledgeGraph
+from itext2kg.logging_config import get_logger
 logger = get_logger(__name__)
 
 class iText2KG:

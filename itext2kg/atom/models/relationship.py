@@ -3,7 +3,7 @@ import numpy as np
 from typing import List, Union, Optional
 from pydantic import BaseModel, Field, ConfigDict
 from dateutil import parser
-from atom.models.entity import Entity
+from itext2kg.atom.models.entity import Entity
 
 class BaseModelWithConfig(BaseModel):
     model_config = ConfigDict(

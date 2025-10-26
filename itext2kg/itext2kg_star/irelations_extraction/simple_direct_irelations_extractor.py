@@ -1,9 +1,9 @@
 from typing import List
-from atom.llm_output_parsing.langchain_output_parser import LangchainOutputParser
-from atom.itext2kg.models import Entity, Relationship, KnowledgeGraph
-from atom.itext2kg.graph_matching.matcher import Matcher
-from atom.itext2kg.models.schemas import RelationshipsExtractor
-from atom.logging_config import get_logger
+from itext2kg.llm_output_parsing.langchain_output_parser import LangchainOutputParser
+from itext2kg.itext2kg_star.models import Entity, Relationship, KnowledgeGraph
+from itext2kg.itext2kg_star.graph_matching.matcher import Matcher
+from itext2kg.itext2kg_star.models.schemas import RelationshipsExtractor
+from itext2kg.logging_config import get_logger
 
 logger = get_logger(__name__)
 
