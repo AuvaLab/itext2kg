@@ -157,10 +157,10 @@ class GraphMatcher(GraphMatcherInterface):
                 kg = KnowledgeGraph(relationships=rels2)
                 rel2 = kg.get_relationship(rel1)
                    
-                rel2.combine_timestamps(timestamps=rel1.properties.timestamps, temporal_aspect="timestamps")
+                rel2.combine_timestamps(timestamps=rel1.properties.t_obs, temporal_aspect="t_obs")
                 rel2.combine_timestamps(timestamps=rel1.properties.t_start, temporal_aspect="t_start")
                 rel2.combine_timestamps(timestamps=rel1.properties.t_end, temporal_aspect="t_end")
-                rel2.combine_sources(rel1.properties.sources)
+                rel2.combine_atomic_facts(rel1.properties.atomic_facts)
                 
                 # Track for removal instead of removing immediately
                 full_relationships_match.append(rel1)

@@ -66,16 +66,16 @@ class KnowledgeGraph(BaseModelWithConfig):
         }
         return relationship_dict.get(other_relationship.__hash__())
     
-    def add_timestamps_to_relationships(self, timestamps:Union[List[float], List[str]]) -> None:
-        """Adds timestamps to relationships."""
+    def add_t_obs_to_relationships(self, t_obs:Union[List[float], List[str]]) -> None:
+        """Adds t_obs to relationships."""
         for rel in self.relationships:
-            rel.combine_timestamps(timestamps=timestamps, temporal_aspect="timestamps")
+            rel.combine_timestamps(t_obs=t_obs, temporal_aspect="t_obs")
     
-    def add_sources_to_relationships(self, sources: List[str]) -> None:
-        """Adds sources to relationships."""
+    def add_atomic_facts_to_relationships(self, atomic_facts: List[str]) -> None:
+        """Adds atomic facts to relationships."""
         if self.relationships:
             for rel in self.relationships:
-                rel.combine_sources(sources)
+                rel.combine_atomic_facts(atomic_facts)
 
     def find_isolated_entities(self) -> List[Entity]:
         related_entities = set(r.startEntity for r in self.relationships) | \
@@ -181,17 +181,17 @@ class KnowledgeGraph(BaseModelWithConfig):
                         except:
                             embeddings = None
                 
-                # Handle list properties (timestamps, sources, etc.)
-                sources = rel_properties.pop("sources", [])
-                timestamps = rel_properties.pop("timestamps", [])
+                # Handle list properties (atomic_facts, t_obs, t_start, t_end)
+                atomic_facts = rel_properties.pop("atomic_facts", [])
+                t_obs = rel_properties.pop("t_obs", [])
                 t_start = rel_properties.pop("t_start", [])
                 t_end = rel_properties.pop("t_end", [])
                 
                 # Create RelationshipProperties
                 rel_props = RelationshipProperties(
                     embeddings=embeddings if embeddings is not None else None,
-                    sources=sources if isinstance(sources, list) else [],
-                    timestamps=timestamps if isinstance(timestamps, list) else [],
+                    atomic_facts=atomic_facts if isinstance(atomic_facts, list) else [],
+                    t_obs=t_obs if isinstance(t_obs, list) else [],
                     t_start=t_start if isinstance(t_start, list) else [],
                     t_end=t_end if isinstance(t_end, list) else []
                 )

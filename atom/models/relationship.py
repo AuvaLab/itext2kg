@@ -16,8 +16,8 @@ LABEL_PATTERN = re.compile(r'[^a-zA-Z0-9]+')  # For cleaning labels
 
 class RelationshipProperties(BaseModelWithConfig):
     embeddings:   Optional[np.ndarray]  = None
-    sources:       List[str]         = []
-    timestamps:   List[float] = []
+    atomic_facts:       List[str]         = []
+    t_obs:   List[float] = []
     t_start:      List[float] = []
     t_end:    List[float] = []
 
@@ -38,7 +38,7 @@ class Relationship(BaseModelWithConfig):
     def combine_timestamps(
         self,
         timestamps: Union[List[float], List[str]],
-        temporal_aspect: str  # Should be one of: "timestamps", "t_start", "t_end"
+        temporal_aspect: str  # Should be one of: "t_obs", "t_start", "t_end"
     ) -> None:
         # If timestamps is not empty, process based on element type.
         processed_timestamps: List[float] = []
@@ -62,8 +62,8 @@ class Relationship(BaseModelWithConfig):
                 raise ValueError("Invalid timestamp format. Please provide a list of strings or a list of floats.")
         
         # Extend the appropriate property with timestamps (even if the list is empty).
-        if temporal_aspect == "timestamps":
-            self.properties.timestamps.extend(processed_timestamps)
+        if temporal_aspect == "t_obs":
+            self.properties.t_obs.extend(processed_timestamps)
         elif temporal_aspect == "t_start":
             self.properties.t_start.extend(processed_timestamps)
         elif temporal_aspect == "t_end":
@@ -71,9 +71,9 @@ class Relationship(BaseModelWithConfig):
         else:
             raise ValueError("Invalid temporal aspect. Please provide either 'timestamps', 't_start' or 't_end'.")
 
-    def combine_sources(self, sources: List[str]) -> None:
-        """Combines sources by appending the new source if it's different from existing ones."""
-        self.properties.sources.extend(sources)
+    def combine_atomic_facts(self, atomic_facts: List[str]) -> None:
+        """Combines atomic facts by appending the new atomic fact if it's different from existing ones."""
+        self.properties.atomic_facts.extend(atomic_facts)
             
     def __eq__(self, other) -> bool:
         """Checks equality without considering timestamps."""
