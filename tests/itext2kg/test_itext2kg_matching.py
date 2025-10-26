@@ -2,7 +2,7 @@ import unittest
 import asyncio
 import sys
 import os
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 # Add project root to path for imports
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
