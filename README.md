@@ -202,7 +202,7 @@ from itext2kg.atom import Atom
 from itext2kg import Neo4jStorage
 
 # Set up the OpenAI LLM and embeddings models (replace "##" with your API key)
-openai_api_key = "##"
+openai_api_key = "#"
 openai_llm_model = ChatOpenAI(
     api_key=openai_api_key,
     model="gpt-4.1-2025-04-14",
@@ -218,15 +218,15 @@ openai_embeddings_model = OpenAIEmbeddings(
 )
 
 # Load the 2020-COVID-NYT dataset pickle
-news_covid = pd.read_pickle("../datasets/nyt_news/2020_nyt_COVID_last_version_ready.pkl")
+news_covid = pd.read_pickle("../datasets/atom/nyt_news/2020_nyt_COVID_last_version_ready.pkl")
 
 # Define a helper function to convert the dataframe's atomic facts into a dictionary,
 # where keys are observation dates and values are the combined list of atomic facts for that date.
-def to_dictionary(df): 
+def to_dictionary(df:pd.DataFrame, max_elements: int | None = 20): 
 
     if isinstance(df['factoids_g_truth'][0], str):
         df["factoids_g_truth"] = df["factoids_g_truth"].apply(lambda x:ast.literal_eval(x))
-    grouped_df = df.groupby("date")["factoids_g_truth"].sum().reset_index()
+    grouped_df = df.groupby("date")["factoids_g_truth"].sum().reset_index()[:max_elements]
     return {
         str(date): factoids for date, factoids in grouped_df.set_index("date")["factoids_g_truth"].to_dict().items()
         }
