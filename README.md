@@ -11,7 +11,7 @@ iText2KG is now ATOM. ATOM is a few-shot and scalable approach for building and 
 ![GitHub forks](https://img.shields.io/github/forks/auvalab/itext2kg?style=social)
 ![PyPI](https://img.shields.io/pypi/dm/itext2kg)
 ![Total Downloads](https://img.shields.io/pepy/dt/itext2kg)
-[![Paper](https://img.shields.io/badge/Paper-View-green?style=flat&logo=adobeacrobatreader)]()
+[![Paper](https://img.shields.io/badge/Paper-View-green?style=flat&logo=adobeacrobatreader)](https://arxiv.org/abs/2510.22590)
 ![PyPI](https://img.shields.io/pypi/v/itext2kg)
 [![Demo](https://img.shields.io/badge/Demo-Available-blue)](./examples/)
 ![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow)
@@ -101,7 +101,6 @@ During Module-3's temporal resolution phase, ATOM detects that both 5-tuples sha
 
 For more technical details, check out:
 -   **`atom/atom.py`**: Core logic for building, merging, and updating the knowledge graphs.
--   **`evaluation/`**: Scripts to reconduct the experiments.
 
 ---
 
@@ -126,7 +125,7 @@ As a result, the parallel merge process (Module-3) accounts for only 13% of ATOM
 
 ## Example: Temporal Modeling (ATOM vs. Graphiti)
 
-The following figure demonstrates the difference between ATOM's and Graphiti's temporal modeling using COVID-19 news from 09-01-2020 to 23-01-2020.
+The following figure demonstrates the difference between ATOM's and Graphiti's temporal modeling using COVID-19 news from 09-01-2020 to 23-01-2020. For ATOM, timestamps are encoded in UNIX format to eliminate overhead associated with string parsing operations and timezone conversion calculations
 
 For the fact "The mysterious respiratory virus spread to at least 10 other countries" observed on 23-01-2020, **Graphiti** treats the observation time as the validity start time (t_start), setting `valid_at = 23-01-2020` and implying the spread occurred on that specific date.
 
@@ -136,35 +135,59 @@ In contrast, **ATOM's** dual-time modeling preserves the observation time (`t_ob
   <img src="./docs/comparison_example.png" width="800px" alt="OpenAI posts DTKG">
 </p>
 
+
+The figure below shows the temporal resolution comparison between ATOM and Graphiti. Two atomic facts observed on January 28, 2020, report death counts from January 24 (26 deaths) and January 27 (at least 80 deaths). Left (ATOM): performs temporal resolution by detecting similar relations and extending their validity period history (t_end in the figure). Right (Graphiti): creates separate relations for each atomic fact, resulting in duplication. Moreover, Graphiti misinterprets "By January 24, 2020" and "By January 27, 2020" as validity start times rather than validity end times, leading to temporal misattribution.
+
+<p align="center">
+  <img src="./docs/comparison_example_2.png" width="800px" alt="OpenAI posts DTKG">
+</p>
+
+
 ## Installation
+```pip install --update itext2kg```
 
-1.  **Clone or Fork** the repository:
-    ```bash
-    git clone [https://github.com/geeekai/atom.git](https://github.com/geeekai/atom.git)
-    cd atom
-    ```
+## ATOM
 
-2.  **Install Requirements**
+### LLM Compatibility
 
-    Install all dependencies by running:
-    ```bash
-    pip install -r requirements.txt
-    ```
+ATOM is compatible with all language models supported by LangChain. To use ATOM, you will need both a chat model and an embeddings model. For available chat models, refer to the options listed at: https://python.langchain.com/docs/integrations/chat/. For embedding models, explore the choices at: https://python.langchain.com/docs/integrations/text_embedding/
 
-3.  **(Optional) Set Up a Virtual Environment**
-    It is recommended to use a virtual environment (e.g., conda, venv) to isolate dependencies.
+Please ensure that you install the necessary package for each chat model before use.
+
+### ATOM Arguments
+
+**Initialization:**
+- `llm_model`: A LangChain chat model instance for extracting relationships from text
+- `embeddings_model`: A LangChain embeddings model instance for computing semantic similarities
+
+**`build_graph` function:**
+(This function could be used to build static KGs as well, just fix an arbitrary observation time and pass your atomic facts).
+
+- `atomic_facts` (List[str]): A list of atomic facts (short, self-contained text snippets) to process
+- `obs_timestamp` (str): The observation timestamp when the atomic facts were collected
+- `existing_knowledge_graph` (KnowledgeGraph, optional): An existing knowledge graph to merge with the new one
+- `ent_threshold` (float, default=0.8): Similarity threshold for entity resolution during merging
+- `rel_threshold` (float, default=0.7): Similarity threshold for relationship resolution during merging
+- `entity_name_weight` (float, default=0.8): Weight for entity name in similarity calculations
+- `entity_label_weight` (float, default=0.2): Weight for entity label in similarity calculations
+- `max_workers` (int, default=8): Maximum number of parallel workers for processing
+
+**`build_graph_from_different_obs_times` function:**
+- `atomic_facts_with_obs_timestamps` (dict): A dictionary where keys are observation timestamps (str) and values are lists of atomic facts for each timestamp
+- `existing_knowledge_graph` (KnowledgeGraph, optional): An existing knowledge graph to merge with the new ones
+- `ent_threshold` (float, default=0.8): Similarity threshold for entity resolution during merging
+- `rel_threshold` (float, default=0.7): Similarity threshold for relationship resolution during merging
+- `entity_name_weight` (float, default=0.8): Weight for entity name in similarity calculations
+- `entity_label_weight` (float, default=0.2): Weight for entity label in similarity calculations
+- `max_workers` (int, default=8): Maximum number of parallel workers for processing
 
 # Example: Building a TKG from Text
 
-In this example, we demonstrate how to use ATOM to extract atomic facts from a dataset, build a dynamic Temporal Knowledge Graph (TKG) across different observation timestamps, and finally visualize the graph using Neo4j.
+The following is a basic example, where we demonstrate how to use ATOM to build a dynamic TKG from atomic facts of the 2020-COVID-NYT. 
 
-The process involves:
-1.  **Loading Data**: Reading an Excel file containing LLMS history with associated observation dates.
-2.  **Factoid Extraction**: Using the `LangchainOutputParser` to extract atomic facts from the text.
-3.  **Graph Construction**: Grouping atomic facts by observation date and building a knowledge graph that merges atomic KGs from different timestamps.
-4.  **Visualization**: Rendering the final graph using the GraphIntegrator module connected to a Neo4j database.
+⚠️ Performance Note: For optimal performance, it is better to run ATOM in dedicated Python scripts rather than Jupyter notebooks, as ATOM's parallel processing architecture can experience significant slowdowns due to event loop conflicts and thread contention in notebook environments.
 
-Below is the derived example code:
+More complex example are coming soon..
 
 ---
 
@@ -175,7 +198,8 @@ import ast
 
 # Import LLM and Embeddings models using LangChain wrappers
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from atom import Atom, Neo4jStorage
+from itext2kg.atom import Atom
+from itext2kg import Neo4jStorage
 
 # Set up the OpenAI LLM and embeddings models (replace "##" with your API key)
 openai_api_key = "##"
@@ -224,3 +248,24 @@ URI = "bolt://localhost:7687"
 USERNAME = "neo4j"
 PASSWORD = "##"
 Neo4jStorage(uri=URI, username=USERNAME, password=PASSWORD).visualize_graph(knowledge_graph=kg)
+````
+
+## Evaluation Scripts, Dataset and Prompts
+The dynamic temporal dataset of COVID-19 from 2020 is located in the folder ./datasets/atom. To reproduce the results, the scripts are located in the folder ./evaluation. The prompts are located in the folder ./itext2kg/atom/models/schemas/
+
+
+## Public Collaboration
+We welcome contributions from the community to improve ATOM.
+
+## Citation
+```bibtex
+@article{lairgi2024atom,
+  title={ATOM: AdapTive and OptiMized dynamic temporal knowledge graph construction using LLMs},
+  author={Lairgi, Yassir and Moncla, Ludovic and Benabdeslem, Khalid and Cazabet, R{\'e}my and Cl{\'e}au, Pierre},
+  journal={arXiv preprint arXiv:2510.22590},
+  year={2025},
+  url={https://arxiv.org/abs/2510.22590},
+  eprint={2510.22590},
+  archivePrefix={arXiv},
+  primaryClass={cs.AI}
+}
