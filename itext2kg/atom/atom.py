@@ -232,17 +232,3 @@ class Atom:
             return self.parallel_atomic_merge(kgs=[existing_knowledge_graph] + kgs, rel_threshold=rel_threshold, ent_threshold=ent_threshold, max_workers=max_workers)
         
         return self.parallel_atomic_merge(kgs=kgs, rel_threshold=rel_threshold, ent_threshold=ent_threshold, max_workers=max_workers)
-    
-    async def batch_build_graph_from_different_obs_times(self,
-                                                          atomic_facts_with_obs_timestamps:dict,
-                                                          existing_knowledge_graph:KnowledgeGraph=None,
-                                                          cache_dir:str=None,
-                                                          ent_threshold:float = 0.8,
-                                                          rel_threshold:float = 0.7,
-                                                          entity_name_weight:float=0.8,
-                                                          entity_label_weight:float=0.2,
-                                                          max_workers:int=8,
-                                                          batch_size:int=40,
-                                                          ):
-        pass
-    
