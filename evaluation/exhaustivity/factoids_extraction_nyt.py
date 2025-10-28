@@ -24,18 +24,20 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
-# Add the project root to Python path
-current_file = Path(__file__).resolve()
-project_root = current_file.parent.parent.parent
-sys.path.append(str(project_root))
 
 from langchain_mistralai import ChatMistralAI
 from langchain_mistralai import MistralAIEmbeddings
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
-from atom.llm_output_parsing.langchain_output_parser import LangchainOutputParser
-from atom.models import AtomicFact
-from langchain_anthropic import ChatAnthropic, AnthropicAIEmbeddings
+from itext2kg.llm_output_parsing.langchain_output_parser import LangchainOutputParser
+from itext2kg.atom.models import AtomicFact
+from langchain_anthropic import ChatAnthropic
+
+
+# Add the project root to Python path
+current_file = Path(__file__).resolve()
+project_root = current_file.parent.parent.parent
+sys.path.append(str(project_root))
 
 
 # Configure logging

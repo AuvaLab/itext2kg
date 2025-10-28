@@ -23,8 +23,8 @@ import asyncio
 import logging
 from datetime import datetime
 from typing import Tuple, Optional
-from atom.atom import Atom
-from atom.models import KnowledgeGraph
+from itext2kg import Atom
+from itext2kg.atom.models import KnowledgeGraph
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 # Global Parameters - Modify these as needed
