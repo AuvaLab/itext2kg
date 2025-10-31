@@ -223,8 +223,8 @@ class Atom:
                             obs_timestamp=timestamp,
                             ent_threshold=ent_threshold,
                             rel_threshold=rel_threshold,
-                            entity_name_weight=entity_name_weight,
-                            entity_label_weight=entity_label_weight,
+                          #  entity_name_weight=entity_name_weight,
+                          #  entity_label_weight=entity_label_weight,
                             existing_knowledge_graph=None,
                         ) for timestamp in atomic_facts_with_obs_timestamps
                     ])
