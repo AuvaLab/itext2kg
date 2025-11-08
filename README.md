@@ -251,7 +251,8 @@ Neo4jStorage(uri=URI, username=USERNAME, password=PASSWORD).visualize_graph(know
 ````
 
 ## Evaluation Scripts, Dataset and Prompts
-The dynamic temporal dataset of COVID-19 from 2020 is located in the folder ./datasets/atom. To reproduce the results, the scripts are located in the folder ./evaluation. The prompts are located in the folder ./itext2kg/atom/models/schemas/
+The dynamic temporal dataset of COVID-19 from 2020 is located in the folder ./datasets/atom (is available also on [huggingface](https://huggingface.co/datasets/lairgiyassir/2020-COVID-NYT)). To reproduce the results, the scripts are located in the folder ./evaluation. The prompts are located in the folder ./itext2kg/atom/models/schemas/
+
 
 
 ## Public Collaboration
