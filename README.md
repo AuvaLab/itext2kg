@@ -33,7 +33,7 @@ In a nutshell, ATOM addresses these limitations by:
 
 - ✅ **Improving exhaustivity**: Capturing comprehensive fact coverage from longer texts (~31% gain on factual exhaustivity, ~18% improvement in temporal exhaustivity)
 - ✅ **Ensuring stability**: Producing consistent TKGs across multiple runs (~17% improvement)
-- ✅ **Enabling scalability**: Supporting large-scale dynamic temporal updates through parallel architecture
+- ✅ **Enabling scalability**: Supporting large-scale dynamic temporal updates through parallel architecture.
 
 ## 🔥 News
 * [20/10/2025] ATOM - Major Enhancements:
