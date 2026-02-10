@@ -1,264 +1,479 @@
-# iText2KG: Incremental Knowledge Graphs Construction Using Large Language Models
+# iText2KG for Biomedical Literature
 
-![GitHub stars](https://img.shields.io/github/stars/auvalab/itext2kg?style=social)
-![GitHub forks](https://img.shields.io/github/forks/auvalab/itext2kg?style=social)
-![PyPI](https://img.shields.io/pypi/dm/itext2kg)
-[![Paper](https://img.shields.io/badge/Paper-View-green?style=flat&logo=adobeacrobatreader)](https://arxiv.org/abs/2409.03284)
-![PyPI](https://img.shields.io/pypi/v/itext2kg)
-[![Demo](https://img.shields.io/badge/Demo-Available-blue)](./examples/)
-![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-yellow)
+A customized version of [iText2KG](https://github.com/auvalab/itext2kg) optimized for biomedical literature knowledge graph construction from PubTator-formatted documents.
 
-🎉 Accepted @ [WISE 2024](https://wise2024-qatar.com/)
+## 📋 Table of Contents
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./docs/logo_white.png" width="300">
-    <source media="(prefers-color-scheme: light)" srcset="./docs/logo_black.png" width="300">
-    <img alt="Logo" src="./docs/logo_white.png" width="300">
-  </picture>
-</p>
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Usage Examples](#usage-examples)
+- [Project Structure](#project-structure)
+- [Configuration](#configuration)
+- [Development](#development)
+- [FAQ](#faq)
 
 ## Overview
 
-iText2KG is a Python package designed to incrementally construct consistent knowledge graphs with resolved entities and relations by leveraging large language models for entity and relation extraction from text documents. It features zero-shot capability, allowing for knowledge extraction across various domains without specific training. The package includes modules for document distillation, entity extraction, and relation extraction, ensuring resolved and unique entities and relationships. It continuously updates the KG with new documents and integrates them into Neo4j for visual representation.
+This project extends the original iText2KG framework with specialized support for biomedical literature processing. It seamlessly integrates with **PubTator** format, enabling automatic extraction of biomedical entities (genes, diseases, chemicals, mutations, etc.) and their relationships from scientific publications.
 
-## 🔥 News
-* [07/10/2024] Latest features:
-  - The entire iText2KG code has been refactored by adding data models that describe an Entity, a Relation, and a KnowledgeGraph.
-  - Each entity is embedded using both its name and label to avoid merging concepts with similar names but different labels. For example, Python:Language and Python:Snake.
-    - The weights for entity name embedding and entity label are configurable, with defaults set to 0.4 for the entity label and 0.6 for the entity name.
-  - A max_tries parameter has been added to the iText2KG.build_graph function for entity and relation extraction to prevent hallucinatory effects in structuring the output. Additionally, a max_tries_isolated_entities parameter has been added to the same method to handle hallucinatory effects when processing isolated entities.
+**Key Enhancements:**
 
-* [17/09/2024] Latest features: 
-  - Now, iText2KG is compatible with all the chat/embeddings models supported by LangChain. For available chat models, refer to the options listed at: https://python.langchain.com/v0.2/docs/integrations/chat/. For embedding models, explore the choices at: https://python.langchain.com/v0.2/docs/integrations/text_embedding/.
+- 🔬 **PubTator Integration**: Native support for PubTator-annotated biomedical entities
+- 🌐 **Domain Agnostic**: Works with any biomedical domain (oncology, neurology, cardiology, etc.)
+- 🚀 **Scalable Processing**: Multi-process batch processing for large literature corpora
+- 🔗 **Entity Resolution**: Precise entity matching using unique identifiers (MESH, Gene IDs, etc.)
+- 📊 **Neo4j Visualization**: Interactive knowledge graph exploration
+- 🔄 **Incremental Updates**: Continuously expand existing knowledge graphs
 
-  - The constructed graph can be expanded by passing the already extracted entities and relationships as arguments to the `build_graph` function in iText2KG.
-  - iText2KG is compatible with all Python versions above 3.9.
+## Key Features
 
+### ✨ Core Capabilities
 
-* [16/07/2024] We have addressed two major LLM hallucination issues related to KG construction with LLMs when passing the entities list and context to the LLM. These issues are:
+- **PubTator Parser**: Automatic extraction of pre-annotated biomedical entities from PubTator files
+- **Incremental Graph Construction**: Add new publications to existing knowledge graphs without reprocessing
+- **Entity Deduplication**: Similarity-based entity merging (default threshold: 0.9)
+- **LLM-Powered Relation Extraction**: Extract semantic relationships between entities using large language models
+- **Source Provenance**: Track every relationship back to its source publication (PMID)
+- **Multi-Model Support**: Compatible with Ollama, OpenAI, and other LangChain-supported LLMs
 
-  - The LLM might invent entities that do not exist in the provided entities list. We handled this problem by replacing the invented entities with the most similar ones from the input entities list.
-  - The LLM might fail to assign a relation to some entities from the input entities list, causing a "forgetting effect." We handled this problem by reprompting the LLM to extract relations for those entities.
+### 🛠️ Technology Stack
 
+- **LLM**: DeepSeek-R1, GPT-4, Llama, or any LangChain-compatible model
+- **Embeddings**: nomic-embed-text, OpenAI embeddings, or custom models
+- **Database**: Neo4j for graph storage and visualization
+- **Input Format**: PubTator (standard biomedical entity annotation format)
 
 ## Installation
 
-To install iText2KG, ensure you have Python installed, then use pip to install
+### Prerequisites
+
+- Python 3.9 or higher
+- Neo4j (optional, for visualization)
+- Ollama (optional, for local LLM inference)
+
+### Basic Installation
+
 ```bash
-pip install itext2kg
+# Clone the repository
+git clone <your-repo-url>
+cd itext2kg
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Or install in development mode
+pip install -e .
 ```
-## The Overall Architecture
 
-The ```iText2KG``` package consists of four main modules that work together to construct and visualize knowledge graphs from unstructured text. An overview of the overall architecture:
+### Install Ollama (Recommended for Local Inference)
 
-1. **Document Distiller**: This module processes raw documents and reformulates them into semantic blocks based on a user-defined schema. It improves the signal-to-noise ratio by focusing on relevant information and structuring it in a predefined format. 
+```bash
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
 
-2. **Incremental Entity Extractor**: This module extracts unique entities from the semantic blocks and resolves ambiguities to ensure each entity is clearly defined. It uses cosine similarity measures to match local entities with global entities.
+# Pull models
+ollama pull deepseek-r1:32b
+ollama pull nomic-embed-text
+```
 
-3. **Incremental Relation Extractor**: This module identifies relationships between the extracted entities. It can operate in two modes: using global entities to enrich the graph with potential information or using local entities for more precise relationships. 
+## Quick Start
 
-4. **Graph Integrator and Visualization**: This module integrates the extracted entities and relationships into a Neo4j database, providing a visual representation of the knowledge graph. It allows for interactive exploration and analysis of the structured data.
-
-![itext2kg](./docs/itext2kg.png)
-
-The LLM is prompted to extract entities representing one unique concept to avoid semantically mixed entities. The following figure presents the entity and relation extraction prompts using the Langchain JSON Parser. They are categorized as follows: Blue - prompts automatically formatted by Langchain; Regular - prompts we have designed; and Italic - specifically designed prompts for entity and relation extraction. (a) prompts for relation extraction and (b) prompts for entity extraction.
-
-![prompts](./docs/prompts_.png)
-
-## Modules and Examples
-All the examples are provided in the following jupyter notebook [example](./examples/different_llm_models.ipynb).
-
-Now, iText2KG is compatible with all language models supported by LangChain.
-
-To use iText2KG, you will need both a chat model and an embeddings model.
-
-For available chat models, refer to the options listed at: https://python.langchain.com/v0.2/docs/integrations/chat/. For embedding models, explore the choices at: https://python.langchain.com/v0.2/docs/integrations/text_embedding/.
-
-Please ensure that you install the necessary package for each chat model before use.
-
-#### Mistral
-
-
-For Mistral, please set up your model using the tutorial here: https://python.langchain.com/v0.2/docs/integrations/chat/mistralai/. Similarly, for the embedding model, follow the setup guide here: https://python.langchain.com/v0.2/docs/integrations/text_embedding/mistralai/ .
+### 1. Single Document Processing
 
 ```python
-from langchain_mistralai import ChatMistralAI
-from langchain_mistralai import MistralAIEmbeddings
+from langchain_ollama import ChatOllama, OllamaEmbeddings
+from itext2kg.utils import PubtatorProcessor
+from itext2kg import iText2KG
+import pickle
 
-mistral_api_key = "##"
-mistral_llm_model = ChatMistralAI(
-    api_key = mistral_api_key,
-    model="mistral-large-latest",
+# Initialize models
+llm = ChatOllama(
+    model="deepseek-r1:32b",
     temperature=0,
-    max_retries=2,
 )
 
+embeddings = OllamaEmbeddings(
+    model="nomic-embed-text:latest",
+)
 
-mistral_embeddings_model = MistralAIEmbeddings(
-    model="mistral-embed",
-    api_key = mistral_api_key
+# Process PubTator file
+pubtator_file = "Data/pubmed/12345678.txt"
+pubtator_processor = PubtatorProcessor(pubtator_file, llm)
+
+# Extract semantic blocks and entity information
+semantic_blocks = pubtator_processor.block
+properties_info = pubtator_processor.properties_info
+pubtator_info = pubtator_processor.pubtator_info
+
+# Add abstract context
+pubtator_info['abstract'] = {
+    'context': semantic_blocks[-1],
+    'source': properties_info['source']
+}
+
+# Build knowledge graph
+itext2kg = iText2KG(llm_model=llm, embeddings_model=embeddings)
+kg = itext2kg.build_graph(
+    sections=[semantic_blocks],
+    source=properties_info,
+    entities_info=pubtator_info,
+    ent_threshold=0.9,  # Entity similarity threshold
+    rel_threshold=0.4   # Relationship similarity threshold
+)
+
+# Save results
+with open('output_kg/12345678.pkl', 'wb') as f:
+    pickle.dump(kg, f)
+
+print(f"Extracted {len(kg.entities)} entities and {len(kg.relationships)} relationships")
+```
+
+### 2. Batch Processing with Multiprocessing
+
+```python
+import os
+import logging
+from multiprocessing import Pool
+from functools import partial
+from tqdm import tqdm
+
+# Configuration
+DATA_PATH = "Data/pubmed_articles"
+OUTPUT_PATH = "output_kg/pubmed"
+NUM_WORKERS = 20
+
+# Collect PMIDs to process
+pmid_list = []
+for file_name in os.listdir(DATA_PATH):
+    if file_name.endswith('.txt'):
+        pmid = file_name.split('.')[0]
+        output_file = f"{OUTPUT_PATH}/{pmid}.pkl"
+
+        # Skip already processed files
+        if not os.path.exists(output_file):
+            pmid_list.append(pmid)
+
+print(f"Processing {len(pmid_list)} documents...")
+
+# Define processing function
+def process_pmid(pmid, data_path, output_path):
+    # Your processing logic here
+    # See abstract2KG.py or AD2KG.py for complete implementation
+    pass
+
+# Process in parallel
+with Pool(NUM_WORKERS) as pool:
+    list(tqdm(pool.imap(
+        partial(process_pmid, data_path=DATA_PATH, output_path=OUTPUT_PATH),
+        pmid_list
+    ), total=len(pmid_list)))
+```
+
+### 3. Visualize in Neo4j
+
+```python
+from itext2kg.graph_integration import GraphIntegrator
+import pickle
+
+# Neo4j connection
+URI = "bolt://localhost:7687"
+USERNAME = "neo4j"
+PASSWORD = "your-password"
+
+# Load knowledge graph
+with open('output_kg/12345678.pkl', 'rb') as f:
+    kg = pickle.load(f)
+
+# Visualize
+integrator = GraphIntegrator(
+    uri=URI,
+    username=USERNAME,
+    password=PASSWORD
+)
+
+integrator.visualize_graph(knowledge_graph=kg)
+```
+
+## Usage Examples
+
+### PubTator File Format
+
+PubTator is a standard format for biomedical entity annotations:
+
+```
+12345678|t|Title of the paper
+12345678|a|Abstract text here...
+12345678	0	10	Alzheimer	Disease	MESH:D000544
+12345678	20	25	tau	Gene	4137
+12345678	30	40	amyloid	Chemical	MESH:D000682
+```
+
+**Format Explanation:**
+- Line 1: `PMID|t|Title`
+- Line 2: `PMID|a|Abstract`
+- Subsequent lines: `PMID [TAB] start [TAB] end [TAB] mention [TAB] type [TAB] identifier`
+
+### Example Scripts
+
+#### abstract2KG.py - Single Document Processing
+
+Process one PubTator file at a time. Useful for testing or small-scale processing.
+
+```bash
+python abstract2KG.py
+```
+
+#### AD2KG.py - Batch Processing Example (Alzheimer's Disease)
+
+Demonstrates batch processing with filtering and multiprocessing. Can be adapted for any disease domain.
+
+**Features:**
+- Multi-process parallel processing (configurable workers)
+- Automatic skip of processed files
+- Custom filtering logic (easily adaptable)
+- Comprehensive error handling and logging
+
+```bash
+python AD2KG.py
+```
+
+**Adapting for Your Domain:**
+1. Change `DATA_PATH` to your PubTator files directory
+2. Modify filtering criteria (e.g., keyword matching)
+3. Adjust `NUM_WORKERS` based on your system resources
+
+## Project Structure
+
+```
+itext2kg/
+├── itext2kg/                      # Core package
+│   ├── __init__.py
+│   ├── itext2kg.py               # Main KG construction logic
+│   ├── documents_distiller/      # Document processing
+│   ├── ientities_extraction/     # Entity extraction
+│   ├── irelations_extraction/    # Relation extraction
+│   ├── graph_integration/        # Neo4j integration
+│   │   └── graph_integrator.py
+│   ├── models/                   # Data models
+│   │   ├── entity.py
+│   │   ├── relation.py
+│   │   └── knowledge_graph.py
+│   └── utils/                    # Utility functions
+│       ├── pubtator_processor.py # PubTator parser
+│       ├── matcher.py            # Entity matching
+│       └── schemas.py            # Data schemas
+├── Data/                         # Data directory (not tracked)
+│   └── pubmed_articles/          # Your PubTator files
+├── output_kg/                    # Output directory (not tracked)
+│   └── pubmed/                   # Generated knowledge graphs
+├── tests/                        # Unit tests
+├── examples/                     # Example notebooks and scripts
+├── docs/                         # Documentation
+│   └── reviewer_response/        # Academic materials
+├── abstract2KG.py               # Single document processing
+├── AD2KG.py                     # Batch processing example
+├── setup.py                     # Installation script
+├── requirements.txt             # Dependencies
+├── CHANGELOG.md                 # Version history
+└── README.md                    # This file
+```
+
+## Configuration
+
+### Model Configuration
+
+#### Using Ollama (Recommended for Local Deployment)
+
+```python
+from langchain_ollama import ChatOllama, OllamaEmbeddings
+
+llm = ChatOllama(
+    model="deepseek-r1:32b",  # or llama3, mistral, etc.
+    temperature=0,
+)
+
+embeddings = OllamaEmbeddings(
+    model="nomic-embed-text:latest",
 )
 ```
 
-The Document Distiller module reformulates raw documents into predefined and semantic blocks using LLMs. It utilizes a schema to guide the extraction of specific information from each document.
-
-#### OpenAI
-The same applies for OpenAI.
-
-please setup your model using the tutorial : https://python.langchain.com/v0.2/docs/integrations/chat/openai/ The same for embedding model : https://python.langchain.com/v0.2/docs/integrations/text_embedding/openai/
+#### Using OpenAI
 
 ```python
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
-openai_api_key = "##"
-
-openai_llm_model = llm = ChatOpenAI(
-    api_key = openai_api_key,
+llm = ChatOpenAI(
+    api_key="your-api-key",
     model="gpt-4o",
     temperature=0,
-    max_tokens=None,
-    timeout=None,
-    max_retries=2,
 )
 
-openai_embeddings_model = OpenAIEmbeddings(
-    api_key = openai_api_key ,
+embeddings = OpenAIEmbeddings(
+    api_key="your-api-key",
     model="text-embedding-3-large",
 )
 ```
 
-### The ```DocumentDistiller```
-
-Example
+#### Using Local OpenAI-Compatible API
 
 ```python
-from itext2kg import DocumentDistiller
-# You can define a schema or upload some predefined ones.
-from itext2kg.utils import Article
+from langchain_openai import ChatOpenAI
 
-# Initialize the DocumentDistiller with llm model.
-document_distiller = DocumentDistiller(llm_model = openai_llm_model)
-
-# List of documents to be distilled.
-documents = ["doc1", "doc2", "doc3"]
-
-# Information extraction query.
-IE_query = '''
-# DIRECTIVES : 
-- Act like an experienced information extractor. 
-- You have a chunk of a scientific paper.
-- If you do not find the right information, keep its place empty.
-'''
-
-# Distill the documents using the defined query and output data structure.
-distilled_doc = document_distiller.distill(documents=documents, IE_query=IE_query, output_data_structure=Article)
-
+llm = ChatOpenAI(
+    api_key="EMPTY",
+    base_url="http://localhost:8102/v1",
+    model="path/to/your/model",
+    temperature=0,
+)
 ```
-The schema depends on the user's specific requirements, as it outlines the essential components to extract or emphasize during the knowledge graph construction. Since there is no universal blueprint for all use cases, its design is subjective and varies by application or context. This flexibility is crucial to making the ```iText2KG``` method adaptable across a wide range of scenarios.
 
-You can define a custom schema using  ```pydantic```. Some example schemas are available in [utils](./itext2kg/utils/schemas.py). You can use these or create new ones depending on your use-case. 
+### Parameter Tuning
 
+#### Entity Matching Threshold (`ent_threshold`)
+- **Default**: 0.9
+- **Description**: Controls entity deduplication strictness
+- **Recommendations**:
+  - 0.9-1.0: Strict matching, reduces false merges
+  - 0.7-0.9: Moderate matching
+  - <0.7: Loose matching, may increase false positives
+
+#### Relationship Matching Threshold (`rel_threshold`)
+- **Default**: 0.4
+- **Description**: Controls relationship deduplication
+- **Recommendations**:
+  - 0.4-0.6: Suitable for most scenarios
+  - <0.4: More aggressive merging
+
+#### Entity Embedding Weights
 
 ```python
-from typing import List, Optional
-from pydantic import BaseModel, Field
-
-# Define an Author model with name and affiliation fields.
-class Author(BaseModel):
-    name: str = Field(description="The name of the author")
-    affiliation: str = Field(description="The affiliation of the author")
-    
-# Define an Article model with various fields describing a scientific article.
-class Article(BaseModel):
-    title: str = Field(description="The title of the scientific article")
-    authors: List[Author] = Field(description="The list of the article's authors and their affiliation")
-    abstract: str = Field(description="The article's abstract")
-    key_findings: str = Field(description="The key findings of the article")
-    limitation_of_sota: str = Field(description="limitation of the existing work")
-    proposed_solution: str = Field(description="The proposed solution in details")
-    paper_limitations: str = Field(description="The limitations of the proposed solution of the paper")
-
+kg = itext2kg.build_graph(
+    sections=sections,
+    entity_name_weight=0.6,   # Weight for entity name
+    entity_label_weight=0.4,  # Weight for entity type/label
+)
 ```
 
+This prevents false merges like "Python (programming language)" and "Python (snake)".
 
-### The ```iText2KG```
-The iText2KG module is the core component of the package, responsible for integrating various functionalities to construct the knowledge graph. It uses the distilled semantic sections from documents to extract entities and relationships, and then builds the knowledge graph incrementally. 
+## Development
 
-Although it is highly recommended to pass the documents through the ```Document Distiller``` module, it is not required for graph creation. You can directly pass your chunks into the ```build_graph``` function of the ```iText2KG``` class; however, your graph may contain some noisy information.
+### Running Tests
+
+```bash
+# Install development dependencies
+pip install -e ".[dev]"
+
+# Run all tests
+pytest tests/
+
+# Run specific test file
+pytest tests/test_matcher.py
+
+# Run with coverage
+pytest --cov=itext2kg --cov-report=html
+```
+
+### Code Formatting
+
+```bash
+# Format code with black
+black itext2kg/
+
+# Sort imports
+isort itext2kg/
+
+# Lint code
+flake8 itext2kg/
+```
+
+### Creating Domain-Specific Processing Scripts
+
+1. Copy `abstract2KG.py` as a template
+2. Modify data paths and output paths
+3. Customize filtering logic (e.g., disease keywords, journal filters)
+4. Add domain-specific entity type handling if needed
+
+Example filtering for cancer research:
 
 ```python
-from itext2kg import iText2KG
-
-# Initialize iText2KG with the llm model and embeddings model.
-itext2kg = iText2KG(llm_model = openai_llm_model, embeddings_model = openai_embeddings_model)
-
-# Format the distilled document into semantic sections.
-semantic_blocks = [f"{key} - {value}".replace("{", "[").replace("}", "]") for key, value in distilled_doc.items()]
-
-# Build the knowledge graph using the semantic sections.
-kg = itext2kg.build_graph(sections=semantic_blocks)
-
+# Filter for cancer-related papers
+if any(keyword in abstract.lower() for keyword in ['cancer', 'tumor', 'oncology', 'carcinoma']):
+    pmid_list.append(pmid)
 ```
 
-The Arguments of ```iText2KG```:
+## FAQ
 
-- `llm_model`: The language model instance to be used for extracting entities and relationships from text.
-- `embeddings_model`: The embeddings model instance to be used for creating vector representations of extracted entities.
-- `sleep_time (int)`: The time to wait (in seconds) when encountering rate limits or errors (for OpenAI only). Defaults to 5 seconds.
+### Q: What biomedical domains are supported?
+**A**: All domains! As long as you have PubTator-formatted files, you can process literature from any biomedical field (oncology, cardiology, immunology, etc.).
 
-The Argument of ```iText2KG``` method ```build_graph```:
+### Q: How do I get PubTator files?
+**A**:
+- Use [PubTator Central](https://www.ncbi.nlm.nih.gov/research/pubtator/) API
+- Download pre-annotated datasets from PubTator FTP
+- Use PubTator3 for custom annotations
 
-- `sections (List[str])`: A list of strings (semantic blocks) where each string represents a section of the document from which entities and relationships will be extracted.
-- `ent_threshold (float, optional)`: The threshold for entity matching, used to merge entities from different sections. Default is 0.7.
-- `rel_threshold (float, optional)`: The threshold for relationship matching, used to merge relationships from different sections. Default is 0.7.
-- `existing_knowledge_graph (KnowledgeGraph, optional)`: An existing knowledge graph to merge the newly extracted entities and relationships into. Default is None.
-- `entity_name_weight (float)`: The weight of the entity name in the entity embedding process. Default is 0.6.
-- `entity_label_weight (float)`: The weight of the entity label in the entity embedding process. Default is 0.4.
-- `max_tries (int, optional)`: The maximum number of attempts to extract entities and relationships. Defaults to 5.
-- `max_tries_isolated_entities (int, optional)`: The maximum number of attempts to process isolated entities  (entities without relationships). Defaults to 3.
+### Q: How to handle large literature corpora?
+**A**: Use the multiprocessing approach in `AD2KG.py`. Adjust `NUM_WORKERS` based on your CPU cores and memory.
 
-## The ```GraphIntegrator```
-It integrates the extracted entities and relationships into a Neo4j graph database and provides a visualization of the knowledge graph. This module allows users to easily explore and analyze the structured data using Neo4j's graph capabilities.
+### Q: How to avoid reprocessing?
+**A**: The scripts automatically check for existing `.pkl` files in the output directory and skip them.
+
+### Q: How to view the knowledge graph?
+**A**:
+- Use Neo4j for interactive visualization
+- Load `.pkl` files and inspect entities/relationships programmatically
+- Export to other graph formats (GraphML, JSON, etc.)
+
+### Q: Memory issues with large batches?
+**A**:
+- Reduce `NUM_WORKERS`
+- Process in smaller batches
+- Use a machine with more RAM
+
+### Q: How to merge multiple knowledge graphs?
+**A**: Use the `existing_knowledge_graph` parameter:
 
 ```python
-from itext2kg.graph_integration import GraphIntegrator
-
-
-URI = "bolt://localhost:7687"
-USERNAME = "neo4j"
-PASSWORD = "###"
-
-GraphIntegrator(uri=URI, username=USERNAME, password=PASSWORD).visualize_graph(knowledge_graph=kg)
+kg2 = itext2kg.build_graph(
+    sections=new_sections,
+    existing_knowledge_graph=kg1
+)
 ```
 
+### Q: Can I use custom entity types?
+**A**: Yes! The PubTator processor handles any entity types in your PubTator files (Disease, Gene, Chemical, Species, Mutation, CellLine, etc.).
 
+## License
 
-## Some ```iText2KG``` use-cases
+This project is licensed under the MIT License. Original iText2KG copyright belongs to Auvalab.
 
-In the figure below, we have constructed a KG for the article [seasonal](./datasets/scientific_articles/seasonal.pdf) and for the company [company](https://auvalie.com/), with its permission to publish it publicly. Additionally, the Curriculum Vitae (CV) KG is based on the following generated [CV](./datasets/cvs/CV_Emily_Davis.pdf).
+## Acknowledgments
 
-![text2kg](./docs/text_2_kg.png)
-
-## Dataset
-The dataset consists of five generated CVs using GPT-4, five randomly selected scientific articles representing various domains of study with diverse structures, and five company websites from different industries of varying sizes. Additionally, we have included distilled versions of the CVs and scientific articles based on predefined schemas.
-
-Another dataset has been added, consisting of 1,500 similar entity pairs and 500 relationships, inspired by various domains (e.g., news, scientific articles, HR practices), to estimate the threshold for merging entities and relationships based on cosine similarity.
-
-## Public Collaboration
-We welcome contributions from the community to improve iText2KG.
+- **Original Project**: [iText2KG](https://github.com/auvalab/itext2kg) by Auvalab
+- **Paper**: Lairgi, Y., et al. (2024). iText2KG: Incremental Knowledge Graphs Construction Using Large Language Models. arXiv:2409.03284
+- **Conference**: Accepted at WISE 2024
 
 ## Citation
+
+If you use this tool in your research, please cite the original iText2KG paper:
+
 ```bibtex
 @article{lairgi2024itext2kg,
   title={iText2KG: Incremental Knowledge Graphs Construction Using Large Language Models},
   author={Lairgi, Yassir and Moncla, Ludovic and Cazabet, R{\'e}my and Benabdeslem, Khalid and Cl{\'e}au, Pierre},
   journal={arXiv preprint arXiv:2409.03284},
   year={2024},
-  note={Accepted at The International Web Information Systems Engineering conference (WISE) 2024},
-  url={https://arxiv.org/abs/2409.03284},
-  eprint={2409.03284},
-  archivePrefix={arXiv},
-  primaryClass={cs.AI}
+  note={Accepted at WISE 2024}
 }
 ```
+
+## Contact
+
+For questions or suggestions, please open an issue on GitHub.
+
+---
+
+⭐ **Star this repository if you find it useful for your biomedical research!**

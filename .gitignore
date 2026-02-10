@@ -1,9 +1,81 @@
-# 
-output_kg/
-build/
-itext2kg.egg-info/
-Data/
-Data_v2.tar.gz
-*.log
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
 *.pyc
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
 *.out
+logs/
+
+# Data and outputs
+output_kg/
+*.pkl
+*.pickle
+
+# Large files
+*.tar.gz
+*.zip
+*.rar
+Data_v2.tar.gz
+
+# Neo4j
+.neo4j/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Environment variables
+.env
+.env.local
+
+# Project specific
+Data/
+datasets/
+best_pair_for_merge.json
+shared_mechanism_discovery.json
+AD2KG.log

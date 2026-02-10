@@ -193,24 +193,23 @@ class Matcher:
         grouped_entities = {}
         processed_entities = set()
         entities_output = []
+        unique_entity=[]
         relationships_output = []
         
         for entity in entities:
-            if entity.label in ['gene', 'protein', 'disease', 
-                                'drug', 'chemical', 'metabolite', 
-                                'variant', 'cell line','region',
-                                'cell type','processes','pathway',
-                                'abstract'
-                                ]:
-            
+            if entity.name == "alzheimer's disease (ad)":
+                entity.properties_info['unique_id'] = "MESH:D000544"
+            if entity.properties_info.get('unique_id'):
                 unique_id = entity.properties_info.get('unique_id')
                 if unique_id and unique_id != '-':
                     if unique_id not in grouped_entities:
                         grouped_entities[unique_id] = []
                     grouped_entities[unique_id].append(entity) #The grouped entities now has the actual object in it, not just names!
                 else:
-                    processed_entities.add(entity)
                     entities_output.append(entity)
+            else:
+                entities_output.append(entity)
+            processed_entities.add(entity)
                 
         #Process it in the next steps
         #Set to store entities that have already been processed, because some entities were added multiple times.

@@ -1,3 +1,108 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "itext2kg"
+version = "0.0.8"
+description = "Incremental Knowledge Graphs Construction Using Large Language Models"
+readme = "README.md"
+authors = [
+    {name = "Yassir LAIRGI", email = "yassir.lairgi@auvalie.com"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+keywords = [
+    "knowledge graph",
+    "knowledge graph construction",
+    "large language models",
+    "llm",
+    "neo4j",
+    "graph database",
+    "entity extraction",
+    "relation extraction",
+    "incremental learning",
+    "nlp",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "langchain>=0.3.0",
+    "langchain-core>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "neo4j>=5.24.0",
+    "numpy>=1.24.0",
+    "openai>=1.45.0",
+    "openpyxl>=3.1.5",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.5.2",
+    "scikit-learn>=1.5.2",
+    "pypdf>=4.3.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.2",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "isort>=5.12.0",
+]
+docs = [
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=1.3.0",
+]
+ollama = [
+    "langchain-ollama>=0.1.0",
+]
+mistral = [
+    "langchain-mistralai>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/auvalab/itext2kg"
+Documentation = "https://github.com/auvalab/itext2kg"
+Repository = "https://github.com/auvalab/itext2kg"
+"Bug Tracker" = "https://github.com/auvalab/itext2kg/issues"
+Paper = "https://arxiv.org/abs/2409.03284"
+
+[tool.setuptools]
+packages = ["itext2kg"]
+
+[tool.setuptools.package-data]
+itext2kg = ["py.typed"]
+
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311', 'py312']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=itext2kg --cov-report=term-missing"
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

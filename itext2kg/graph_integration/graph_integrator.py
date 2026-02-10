@@ -57,6 +57,7 @@ class GraphIntegrator:
         """
         if embeddings is None:
             return ""
+        embeddings = np.array(embeddings)
         return ",".join(list(embeddings.astype("str")))
     
     @staticmethod
@@ -88,9 +89,12 @@ class GraphIntegrator:
         for node in knowledge_graph.entities:
             properties = []
             for prop, value in node.properties.model_dump().items():
+                if prop == "embeddings":
+                    continue
                 # if prop == "embeddings":
                 #     value = GraphIntegrator.transform_embeddings_to_str_list(value)
-                properties.append(f'SET n.{prop.replace(" ", "_")} = {value.tolist()}')
+
+                properties.append(f'SET n.{prop.replace(" ", "_")} = {value}')
             
             if len(node.properties_info) > 0 and node.label != "abstract":
                 property_statements_info = [f'SET n.{key.replace(" ", "_")} = "{value}"' 
@@ -120,10 +124,14 @@ class GraphIntegrator:
             
             property_statements = ' '.join(
                 [
-                    f'SET r.{key.replace(" ", "_")} = "{value}"' 
-                    if key != "embeddings" 
-                    else f'SET r.{key.replace(" ", "_")} = {value.tolist()}' 
+                    # f'SET r.{key.replace(" ", "_")} = "{value}"' 
+                    # if key != "embeddings" 
+                    # else f'SET r.{key.replace(" ", "_")} = {value}' 
+                    # for key, value in rel.properties.model_dump().items()
+                    
+                    f'SET r.{key.replace(" ", "_")} = "{value}"'
                     for key, value in rel.properties.model_dump().items()
+                    if key != "embeddings"  # <--- 'if' 在末尾，作为过滤器
                 ]
             )
 
