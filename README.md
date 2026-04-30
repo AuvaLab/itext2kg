@@ -1,5 +1,5 @@
 # ATOM: AdapTive and OptiMized Dynamic Temporal Knowledge Graph Construction Using LLMs
-
+🎉 Accepted @ [EACL 2026](https://2026.eacl.org/)
 iText2KG is now ATOM. ATOM is a few-shot and scalable approach for building and continuously updating Temporal Knowledge Graphs (TKGs) from unstructured texts.
 (We kept the legacy iText2KG in the repository, please check the [README](./README_itext2kg.md).)
 
