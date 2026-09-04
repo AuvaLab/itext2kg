@@ -40,7 +40,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/uv
-          key: ${{ runner.os }}-python-${{ matrix.python-version }}-uv-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-python-${{ matrix.python-version }}-uv-${{ hashFiles('requirements.txt', 'setup.cfg') }}
 
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -64,3 +64,5 @@ jobs:
           python -c "from itext2kg.atom import GraphMatcher; print('✅ Atom GraphMatcher import successful')"
           python -c "from itext2kg.atom.models import Entity, Relationship, KnowledgeGraph; print('✅ Atom Models import successful')"
           python -c "from itext2kg.itext2kg_star.models import Entity, Relationship, KnowledgeGraph; print('✅ iText2KG Models import successful')"
+          python -c "from itext2kg.c_unseen import CUnseen; print('✅ C-Unseen import successful')"
+          python -c "from itext2kg.c_unseen.models import SignalKnowledgeGraph; print('✅ C-Unseen models import successful')"
