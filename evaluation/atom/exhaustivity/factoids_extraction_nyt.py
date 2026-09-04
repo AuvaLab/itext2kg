@@ -34,10 +34,14 @@ from itext2kg.atom.models import AtomicFact
 from langchain_anthropic import ChatAnthropic
 
 
-# Add the project root to Python path
-current_file = Path(__file__).resolve()
-project_root = current_file.parent.parent.parent
-sys.path.append(str(project_root))
+for _p in Path(__file__).resolve().parents:
+    if (_p / ".git").exists():
+        project_root = _p
+        sys.path.insert(0, str(_p))
+        break
+else:
+    raise RuntimeError("Could not locate repository root")
+
 
 
 # Configure logging
@@ -57,8 +61,8 @@ logger.info("Setting up API connections...")
 # Global configuration vars
 # ==========================
 # Paths
-INPUT_DATASET_PATH: Path = project_root / "datasets" / "nyt_news" / "2020_nyt_COVID_last_version_ready.pkl"
-OUTPUT_DATASET_PATH: Path = project_root / "datasets" / "nyt_news" / "2020_nyt_COVID_last_version_ready_factoids_claude.pkl"
+INPUT_DATASET_PATH: Path = project_root / "datasets" / "atom" / "nyt_news" / "2020_nyt_COVID_last_version_ready.pkl"
+OUTPUT_DATASET_PATH: Path = project_root / "datasets" / "atom" / "nyt_news" / "2020_nyt_COVID_last_version_ready_factoids_claude.pkl"
 
 # Column names
 # It could be used on the cumulative lead_paragraph_observation_date. You can change "lead_paragraph_observation_date" 
@@ -71,7 +75,7 @@ SAMPLER_K: int | None = None
 
 # Batch processing configuration
 BATCH_SIZE: int = 10  # Process 5 contexts per batch
-CHECKPOINT_FILE: Path = project_root / "datasets" / "nyt_news" / "factoids_checkpoint.json"
+CHECKPOINT_FILE: Path = project_root / "datasets" / "atom" / "nyt_news" / "factoids_checkpoint.json"
 
 mistral_api_key = "###"
 mistral_llm_model = ChatMistralAI(

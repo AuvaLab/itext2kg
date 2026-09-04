@@ -22,10 +22,14 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import sys
 
-# Add the project root to Python path
-current_file = Path(__file__).resolve()
-project_root = current_file.parent.parent.parent
-sys.path.append(str(project_root))
+for _p in Path(__file__).resolve().parents:
+    if (_p / ".git").exists():
+        project_root = _p
+        sys.path.insert(0, str(_p))
+        break
+else:
+    raise RuntimeError("Could not locate repository root")
+
 
 # Configure logging
 logging.basicConfig(

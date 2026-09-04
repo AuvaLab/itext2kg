@@ -24,18 +24,22 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
-# Add the project root to Python path
-current_file = Path(__file__).resolve()
-project_root = current_file.parent.parent.parent
-sys.path.append(str(project_root))
+for _p in Path(__file__).resolve().parents:
+    if (_p / ".git").exists():
+        project_root = _p
+        sys.path.insert(0, str(_p))
+        break
+else:
+    raise RuntimeError("Could not locate repository root")
+
 
 from langchain_mistralai import ChatMistralAI
 from langchain_mistralai import MistralAIEmbeddings
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_anthropic import ChatAnthropic
 
-from atom.llm_output_parsing.langchain_output_parser import LangchainOutputParser
-from atom.models import RelationshipsExtractor, Prompt
+from itext2kg.llm_output_parsing.langchain_output_parser import LangchainOutputParser
+from itext2kg.atom.models import RelationshipsExtractor, Prompt
 
 # Configure logging
 logging.basicConfig(
@@ -54,8 +58,8 @@ logger.info("Setting up API connections...")
 # Global configuration vars
 # ==========================
 # Paths
-INPUT_DATASET_PATH: Path = project_root / "datasets" / "nyt_news" / "2020_nyt_COVID_last_version_ready_quintuples_gpt41_from_factoids_run3.pkl"
-OUTPUT_DATASET_PATH: Path = project_root / "datasets" / "nyt_news" / "2020_nyt_COVID_last_version_ready_quintuples_gpt41_from_factoids_run3_run3.pkl"
+INPUT_DATASET_PATH: Path = project_root / "datasets" / "atom" / "nyt_news" / "2020_nyt_COVID_last_version_ready_quintuples_gpt41_from_factoids_run3.pkl"
+OUTPUT_DATASET_PATH: Path = project_root / "datasets" / "atom" / "nyt_news" / "2020_nyt_COVID_last_version_ready_quintuples_gpt41_from_factoids_run3_run3.pkl"
 
 # Column names
 # It could be used on the cumulative lead_paragraph_observation_date. You can change "lead_paragraph_observation_date" 
@@ -69,7 +73,7 @@ SAMPLER_K: int | None = None
 
 # Batch processing configuration
 BATCH_SIZE: int = 30 
-CHECKPOINT_FILE: Path = project_root / "datasets" / "nyt_news" / "quintuples_checkpoint.json"
+CHECKPOINT_FILE: Path = project_root / "datasets" / "atom" / "nyt_news" / "quintuples_checkpoint.json"
 
 mistral_api_key = "###"
 mistral_llm_model = ChatMistralAI(

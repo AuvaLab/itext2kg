@@ -28,9 +28,14 @@ import sys
 from pathlib import Path
 
 # Add the project root to Python path (same pattern as exhaustivity_evaluation_nyt.py)
-current_file = Path(__file__).resolve()
-project_root = current_file.parent.parent.parent
-sys.path.append(str(project_root))
+for _p in Path(__file__).resolve().parents:
+    if (_p / ".git").exists():
+        project_root = _p
+        sys.path.insert(0, str(_p))
+        break
+else:
+    raise RuntimeError("Could not locate repository root")
+
 
 # Configure logging
 logging.basicConfig(
@@ -53,7 +58,7 @@ logger.info("Setting up configuration and API connections...")
 MODEL_NAMES = ['claude', 'gpt4o', 'mistral', 'o3mini', 'gpt41']
 
 # Data configuration
-DATA_PATH = project_root / "datasets" / "nyt_news" / "subset_2020_nyt_COVID_final.pkl"
+DATA_PATH = project_root / "datasets" / "atom" / "nyt_news" / "subset_2020_nyt_COVID_final.pkl"
 PREDICTED_COL_TEMPLATE = "cumul_quintuples_{}"
 GOLD_COL = "cumul_quintuples_g_truth"
 TOKEN_COL = "cumul_lead_paragraph_observation_date_tokenc"
@@ -634,7 +639,7 @@ async def main():
             
             # Import ATOM modules (these need to be imported after sys.path modification)
             try:
-                from atom.llm_output_parsing.langchain_output_parser import LangchainOutputParser
+                from itext2kg.llm_output_parsing.langchain_output_parser import LangchainOutputParser
                 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
                 print("   ✅ ATOM modules imported successfully")
                 logger.info("ATOM modules imported successfully")
