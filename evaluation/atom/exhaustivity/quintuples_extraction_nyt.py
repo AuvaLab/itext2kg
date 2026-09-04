@@ -58,7 +58,7 @@ logger.info("Setting up API connections...")
 # Global configuration vars
 # ==========================
 # Paths
-INPUT_DATASET_PATH: Path = project_root / "datasets" / "atom" / "nyt_news" / "2020_nyt_COVID_last_version_ready_quintuples_gpt41_from_factoids_run3.pkl"
+INPUT_DATASET_PATH: Path = project_root / "datasets" / "atom" / "nyt_news" / "2020_nyt_COVID_last_version_ready.pkl"
 OUTPUT_DATASET_PATH: Path = project_root / "datasets" / "atom" / "nyt_news" / "2020_nyt_COVID_last_version_ready_quintuples_gpt41_from_factoids_run3_run3.pkl"
 
 # Column names
