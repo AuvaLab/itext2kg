@@ -25,15 +25,15 @@ Legacy iText2KG documentation remains in [README_itext2kg.md](./README_itext2kg.
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./docs/logo_atom_white.png" width="220">
-    <source media="(prefers-color-scheme: light)" srcset="./docs/logo_atom_black.png" width="220">
-    <img alt="ATOM" src="./docs/logo_atom_white.png" width="220">
-  </picture>
-  &nbsp;&nbsp;&nbsp;
-  <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./docs/logo_cunseen_white.png" width="220">
     <source media="(prefers-color-scheme: light)" srcset="./docs/logo_cunseen_black.png" width="220">
     <img alt="C-Unseen" src="./docs/logo_cunseen_white.png" width="220">
+  </picture>
+  &nbsp;&nbsp;&nbsp;
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/logo_atom_white.png" width="220">
+    <source media="(prefers-color-scheme: light)" srcset="./docs/logo_atom_black.png" width="220">
+    <img alt="ATOM" src="./docs/logo_atom_white.png" width="220">
   </picture>
   &nbsp;&nbsp;&nbsp;
   <picture>
