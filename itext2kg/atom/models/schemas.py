@@ -103,6 +103,32 @@ Given an input paragraph and an `observation_date`, generate a list of all disti
 - Fans of Real Madrid celebrated the Champions League victory across the city on June 18, 2024
         '''
     )
+
+
+class DomainedFact(BaseModel):
+    fact: str = Field(
+        description=(
+            "One atomic, decontextualized, temporally-grounded fact in simple present tense."
+        )
+    )
+    domain: str = Field(
+        default="",
+        description=(
+            "Domain category for this fact. Must be one of the allowed domains "
+            "supplied in the system prompt. Leave empty only if no allowed list was provided."
+        ),
+    )
+
+
+class DomainedAtomicFact(BaseModel):
+    atomic_fact: list[DomainedFact] = Field(
+        default_factory=list,
+        description=(
+            "Atomic facts extracted from the input paragraph, each with an optional domain label."
+        ),
+    )
+
+
 # ---------------- Entities & Relationships Extraction --------------------------- #
 
 

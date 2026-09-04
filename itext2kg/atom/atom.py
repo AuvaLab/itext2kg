@@ -2,9 +2,15 @@ from itext2kg.atom.models import KnowledgeGraph, Entity, Relationship, Relations
 from itext2kg.atom.graph_matching import GraphMatcher
 from itext2kg.llm_output_parsing import LangchainOutputParser
 from itext2kg.atom.models.schemas import Relationship as RelationshipSchema
-from itext2kg.atom.models.schemas import RelationshipsExtractor
+from itext2kg.atom.models.schemas import (
+    RelationshipsExtractor,
+    AtomicFact,
+    DomainedFact,
+    DomainedAtomicFact,
+)
 import concurrent.futures
 from typing import List, Optional
+from pathlib import Path
 from itext2kg.atom.models.prompts import Prompt
 from dateutil import parser
 import asyncio
@@ -13,20 +19,74 @@ from itext2kg.logging_config import get_logger
 logger = get_logger(__name__)
 
 class Atom:
-    def __init__(self, 
-                 llm_model,
-                 embeddings_model,
-                 ) -> None:        
+    def __init__(
+        self,
+        llm_model,
+        embeddings_model,
+        kg_store_dir: Path | str | None = None,
+    ) -> None:
         """
         Initializes the ATOM with specified language model, embeddings model, and operational parameters.
-        
+
         Args:
-        matcher: The matcher instance to be used for matching entities and relationships.
-        llm_output_parser: The language model instance to be used for extracting entities and relationships from text.
+            llm_model: Chat model for extraction.
+            embeddings_model: Embeddings model for entity/relation matching.
+            kg_store_dir: Optional directory where built KGs are persisted as
+                JSON (+ NPZ for embeddings). When set, each ``build_graph`` call
+                writes ``{obs_timestamp}.json`` / ``.npz``, and multi-obs merges
+                also write ``merged.json`` / ``merged.npz``.
         """
         self.matcher = GraphMatcher()
         self.llm_output_parser = LangchainOutputParser(llm_model=llm_model, embeddings_model=embeddings_model)
-    
+        self.kg_store_dir = Path(kg_store_dir) if kg_store_dir is not None else None
+
+    async def extract_atomic_facts(
+        self,
+        texts: List[str],
+        observation_timestamp: str,
+        domains: List[str] | None = None,
+    ) -> List[List[DomainedFact]]:
+        """Extract atomic facts from texts.
+
+        ``domains=[]`` (default): no domain classification — every returned
+        ``DomainedFact.domain`` is empty and propagates empty downstream.
+
+        ``domains`` non-empty: each fact is labeled with one of the allowed domains.
+        """
+        domains = list(domains or [])
+        system_query = Prompt.atomic_facts_system_query(
+            obs_timestamp=observation_timestamp,
+            domains=domains,
+        )
+        if domains:
+            results = await self.llm_output_parser.extract_information_as_json_for_context(
+                output_data_structure=DomainedAtomicFact,
+                contexts=texts,
+                system_query=system_query,
+            )
+            out: List[List[DomainedFact]] = []
+            for result in results:
+                if result is None:
+                    out.append([])
+                    continue
+                facts = getattr(result, "atomic_fact", None) or []
+                out.append(list(facts))
+            return out
+
+        results = await self.llm_output_parser.extract_information_as_json_for_context(
+            output_data_structure=AtomicFact,
+            contexts=texts,
+            system_query=system_query,
+        )
+        out = []
+        for result in results:
+            if result is None:
+                out.append([])
+                continue
+            raw = getattr(result, "atomic_fact", None) or []
+            out.append([DomainedFact(fact=str(f), domain="") for f in raw])
+        return out
+
     async def extract_quintuples(self, atomic_facts: List[str], observation_timestamp: str) -> List[RelationshipsExtractor]:
         """
         Extracts relationships from atomic facts using the language model.
@@ -56,6 +116,10 @@ class Atom:
         """
         Merges a list of KnowledgeGraphs in parallel, reducing them pairwise.
         """
+        if not kgs:
+            if existing_kg and not existing_kg.is_empty():
+                return existing_kg
+            return KnowledgeGraph()
         # Keep merging until we have just one KG
         current = kgs
         while len(current) > 1:
@@ -156,12 +220,14 @@ class Atom:
                           atomic_facts:List[str],
                           obs_timestamp: str,
                           existing_knowledge_graph:KnowledgeGraph=None,
+                          domains:List[str]|None=None,
                           ent_threshold:float = 0.8,
                           rel_threshold:float = 0.7,
                           entity_name_weight:float=0.8,
                           entity_label_weight:float=0.2,
                           max_workers:int=8,
                         ) -> KnowledgeGraph:
+        domains = list(domains or [])
         system_query = Prompt.temporal_system_query(obs_timestamp=obs_timestamp)
         examples = Prompt.EXAMPLES.value
         logger.info("------- Extracting Quintuples---------")
@@ -179,8 +245,16 @@ class Atom:
             [max_workers for _ in relationships])))
 
         logger.info("------- Adding Atomic Facts to Atomic KGs---------")
-        for atomic_kg, fact in zip(atomic_kgs, atomic_facts):
+        if domains and len(domains) != len(atomic_facts):
+            raise ValueError(
+                f"domains length ({len(domains)}) must match atomic_facts length ({len(atomic_facts)})"
+            )
+        for i, (atomic_kg, fact) in enumerate(zip(atomic_kgs, atomic_facts)):
             atomic_kg.add_atomic_facts_to_relationships(atomic_facts=[fact])
+            if domains:
+                domain = domains[i]
+                if domain:
+                    atomic_kg.add_domains_to_relationships(domains=[domain])
 
         logger.info("------- Merging Atomic KGs---------")
         cleaned_atomic_kgs = [kg for kg in atomic_kgs if kg.relationships != []]
@@ -205,22 +279,27 @@ class Atom:
                                                                  )    
         
             constructed_kg = KnowledgeGraph(entities=global_entities, relationships=global_relationships)
+            self._persist_kg(constructed_kg, obs_timestamp)
             return constructed_kg
+        self._persist_kg(merged_kg, obs_timestamp)
         return merged_kg
     
     async def build_graph_from_different_obs_times(self,
                                                    atomic_facts_with_obs_timestamps:dict,
                                                     existing_knowledge_graph:KnowledgeGraph=None,
+                                                    domains_with_obs_timestamps:dict|None=None,
                                                     ent_threshold:float = 0.8,
                                                     rel_threshold:float = 0.7,
                                                     entity_name_weight:float=0.8,
                                                     entity_label_weight:float=0.2,
                                                     max_workers:int=8,
                                                ):
+        domains_with_obs_timestamps = domains_with_obs_timestamps or {}
         kgs = await asyncio.gather(*[
                         self.build_graph(
                             atomic_facts=atomic_facts_with_obs_timestamps[timestamp], 
                             obs_timestamp=timestamp,
+                            domains=domains_with_obs_timestamps.get(timestamp, []),
                             ent_threshold=ent_threshold,
                             rel_threshold=rel_threshold,
                             entity_name_weight=entity_name_weight,
@@ -229,6 +308,18 @@ class Atom:
                         ) for timestamp in atomic_facts_with_obs_timestamps
                     ])
         if existing_knowledge_graph:
-            return self.parallel_atomic_merge(kgs=[existing_knowledge_graph] + kgs, rel_threshold=rel_threshold, ent_threshold=ent_threshold, max_workers=max_workers)
-        
-        return self.parallel_atomic_merge(kgs=kgs, rel_threshold=rel_threshold, ent_threshold=ent_threshold, max_workers=max_workers)
+            merged = self.parallel_atomic_merge(kgs=[existing_knowledge_graph] + kgs, rel_threshold=rel_threshold, ent_threshold=ent_threshold, max_workers=max_workers)
+        else:
+            merged = self.parallel_atomic_merge(kgs=kgs, rel_threshold=rel_threshold, ent_threshold=ent_threshold, max_workers=max_workers)
+        self._persist_kg(merged, "merged")
+        return merged
+
+    def _persist_kg(self, kg: KnowledgeGraph, label: str) -> None:
+        """Write JSON (+ NPZ) under kg_store_dir when configured."""
+        if self.kg_store_dir is None:
+            return
+        safe = str(label).replace("/", "_").replace(" ", "_")
+        json_path = self.kg_store_dir / f"{safe}.json"
+        npz_path = self.kg_store_dir / f"{safe}.npz"
+        kg.to_json(json_path, embeddings_path=npz_path)
+        logger.info("Persisted KG to %s (+ %s)", json_path, npz_path)

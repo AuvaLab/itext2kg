@@ -1,0 +1,10 @@
+include README.md README_itext2kg.md LICENSE requirements.txt
+
+prune datasets
+prune evaluation
+prune tests
+prune docs
+prune useful_scripts
+
+global-exclude *.pyc .DS_Store
+global-exclude __pycache__/*

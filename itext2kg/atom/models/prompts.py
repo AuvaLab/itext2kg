@@ -55,115 +55,29 @@ class Prompt(Enum):
         so maintaining consistency in entity references is crucial.
         """
 
-'''
-class AtomicFactsPrompt(Enum):
-    system_query = """
-    # Atomic Facts Evaluation Task
-
-    You are an expert evaluator for factual information extraction. Your task is to meticulously compare a list of predicted atomic facts against a gold standard and calculate specific metrics.
-    """
     @staticmethod
-    def atomic_facts_system_query(ground_truth: list[str], predicted: list[str]) -> str:
-        return f"""
-    ## Input Format
-    - **Gold Standard**: A set of reference atomic facts with their temporal information
-    - **Predicted Atomic Facts**: A list of atomic facts with associated temporal information
+    def atomic_facts_system_query(obs_timestamp: str, domains: list[str] | None = None) -> str:
+        """System prompt for atomic-fact extraction.
 
-    ## Evaluation Framework
+        When ``domains`` is empty/None, no domain classification is requested.
+        When non-empty, each fact must be labeled with one of the allowed domains.
+        """
+        domains = list(domains or [])
+        base = f"""
+Observation Time: {obs_timestamp}
 
-    ### Phase 1: Content Evaluation
-    Evaluate each predicted atomic fact's content against the gold standard without considering the temporal information:
-
-    **MATCH**: A predicted atomic fact that accurately corresponds to a key fact explicitly stated in the gold standard.
-
-    ### Phase 2: Temporal Evaluation
-    **Only for atomic facts classified as MATCH in Phase 1**, evaluate their temporal components:
-
-    **Temporal Match (MATCH_t)**: The predicted temporal information accurately corresponds to the temporal bounds stated or reasonably inferable from the gold standard for the matched fact.
-
-    **Temporal Omission (OM_t)**: The gold standard specifies temporal bounds for a fact, but the predicted atomic fact either:
-    - Provides no temporal information (null/empty temporal information)
-    - Provides incomplete temporal information (missing t_start or t_end when both should be specified)
-
-    ## Evaluation Instructions
-
-    1. **First Pass**: Compare each predicted atomic fact against the gold standard
-    - Count MATCH
-
-    2. **Second Pass**: For each MATCH case only, evaluate temporal accuracy
-    - Count MATCH_t, OM_t cases
-
-    3. **Output the following counts**:
-    - MATCH: [number]
-    - MATCH_t: [number]
-    - OM_t: [number]
-
-    ## Important Notes
-    - Be precise: semantic equivalence counts as a match (e.g., "John Smith" = "J. Smith" if referring to same entity)
-    - Temporal evaluation only applies to content matches
-    - Consider reasonable temporal tolerance based on the domain and precision of the gold standard
-
-    ---
-    Calculate for the following inputs:
-    gold_standard: {ground_truth}
-    predicted_atomic_facts: {predicted}
-    """
-'''
-
-'''
-class AtomicFactsPrompt(Enum):
-    system_query = """
-    # Atomic Facts Evaluation Task
-
-    You are an expert evaluator for factual information extraction. Your task is to identify predicted atomic facts that match the gold standard in BOTH content and temporal accuracy.
-    """
-    
-    @staticmethod
-    def atomic_facts_system_query(ground_truth: list[str], predicted: list[str]) -> str:
-        return f"""
-## Evaluation Framework: Temporally-Aware Atomic Facts
-
-Your task is to count how many predicted atomic facts fully match the gold standard (both content AND temporal information).
-
-### What Constitutes a MATCH:
-
-A predicted atomic fact is a **MATCH** if and only if:
-1. **Content Accuracy**: The factual content accurately corresponds to a fact explicitly stated in the gold standard
-   - Semantic equivalence counts (e.g., "John Smith" = "J. Smith" if same entity)
-   - The core information must be the same
-   
-2. **Temporal Accuracy**: The temporal information is correct
-   - If the gold standard specifies temporal bounds, the prediction must match them (within reasonable tolerance)
-   - If the gold standard fact is atemporal, the prediction should not add temporal information
-   - Both start and end dates must be accurate if specified in gold standard
-
-### What is NOT a MATCH:
-
-A predicted fact is NOT a match if:
-- Content is not supported by the gold standard
-- Content matches but temporal information is incorrect, hallucinated, or extends beyond what's stated
-- Content matches but temporal information is missing when gold standard specifies it
-- Content matches but temporal information is incomplete (e.g., missing start or end date when both should be present)
-
-### Evaluation Instructions:
-
-1. Go through each predicted atomic fact
-2. For each prediction, ask:
-   - Does the content match a gold standard fact?
-   - Does the temporal information also match (or is appropriately absent)?
-   - Only if BOTH are true → count as MATCH
-
-3. **Output only the MATCH count**
-
-### Important Notes:
-- Be precise with temporal matching - consider domain-appropriate tolerance
-- Atemporal facts in gold standard should remain atemporal in predictions
-- A gold standard fact can only match one prediction (1-to-1 mapping)
-
----
-
-**Input Data:**
-- Gold Standard Facts: {ground_truth}
-- Predicted Atomic Facts: {predicted}
+You are an expert factoid extraction engine. Read the input paragraph and
+decompose it into atomic, self-contained, temporally-grounded facts in
+SIMPLE PRESENT TENSE. Decontextualize pronouns. Convert relative time
+references using the observation date. Do not invent facts.
 """
-'''
+        if not domains:
+            return base + """
+Do NOT assign domain labels. Leave the domain field empty for every fact.
+"""
+        allowed = ", ".join(f"'{d}'" for d in domains)
+        return base + f"""
+For each fact, assign exactly one domain from this allowed list: [{allowed}].
+Do not invent domains outside this list. If a fact does not fit any allowed
+domain, discard it rather than inventing a new domain label.
+"""

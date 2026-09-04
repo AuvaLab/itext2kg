@@ -19,9 +19,12 @@ scikit-learn>=1.7.0,<2.0.0
 # Document processing and data handling
 openpyxl>=3.1.0,<4.0.0
 pypdf>=4.3.0,<5.0.0
+pymupdf>=1.24.0,<2.0.0
+pandas>=2.0.0,<3.0.0
 
 # AI/ML utilities and tokenization
 tiktoken>=0.8.0,<1.0.0
+langchain-experimental>=0.3.4,<0.4.0
 
 # Date and time parsing
 python-dateutil>=2.8.0,<3.0.0

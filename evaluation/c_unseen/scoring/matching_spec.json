@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "matching": "single-word, OR logic: a detection matches a signal if ANY one of these words appears as a token in its (normalized, lowercased) description AND its year is in the window.",
+    "windows": {
+      "SS_FORPROFIT_2019": "2015-2019",
+      "SS_BOARD_COUP_2023": "2019-2023",
+      "SS_NYT_LAWSUIT_2023": "2021-2023",
+      "SS_DEFENCE_TURN": "2019-2025",
+      "SS_FORPROFIT_PBC_2025": "2017-2025"
+    }
+  },
+
+  "SS_FORPROFIT_2019": [
+    "pledge", "collects", "hoffman", "bridges", "salaries", "withholds",
+    "tesla", "cow", "merging", "agi", "capped"
+  ],
+
+  "SS_BOARD_COUP_2023": [
+    "toner", "candor", "sutskever", "mccauley", "brockman", "tribes", 
+    "decoding", "intentions", "maneuvers"
+  ],
+
+  "SS_NYT_LAWSUIT_2023": [
+    "copyright", "whisper", "youtube", "scraped", "infringement",
+    "plaintiffs", "guild", "transcribe", "consent"
+  ],
+
+  "SS_DEFENCE_TURN": [
+    "pentagon", "military", "warfare", "defense", "defence", "anduril",
+    "nakasone", "mulligan", "drone", "davos", "cybersecurity"
+  ],
+
+  "SS_FORPROFIT_PBC_2025": [
+    "pbc", "delaware", "benefit", "restructuring", "consortium", "bid",
+    "unsolicited", "cede", "reclaim", "intervene", "maximization"
+  ]
+}
