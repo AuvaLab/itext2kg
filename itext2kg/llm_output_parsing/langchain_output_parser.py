@@ -232,6 +232,111 @@ class LangchainOutputParser(LLMOutputParserInterface):
             raise TypeError("Invalid text type, please provide a string or a list of strings.")
         return np.array(embeddings)
     
+    def _render_chat_messages_to_string(self, messages: list) -> str:
+        """Render a list of chat messages to a single string for token counting."""
+        parts = []
+        for msg in messages:
+            if hasattr(msg, 'content'):
+                parts.append(msg.content)
+            elif isinstance(msg, tuple):
+                parts.append(str(msg[1]))
+            else:
+                parts.append(str(msg))
+        return "\n".join(parts)
+
+    async def batch_structured_chat_calls(
+        self,
+        prompt_template,
+        variables_list: List[dict],
+        output_data_structure,
+    ) -> List[Any]:
+        """
+        Batch-process a ChatPromptTemplate across multiple variable sets with
+        provider-aware rate limiting, retries, and parallel execution within batches.
+
+        Unlike extract_information_as_json_for_context (which builds flat string prompts),
+        this preserves the chat message format (system + human) for better model performance.
+
+        Args:
+            prompt_template: A ChatPromptTemplate with placeholders matching variables_list keys.
+            variables_list: One dict per call (e.g. one per cluster), each filling the template.
+            output_data_structure: Pydantic model for structured output (e.g. AssessResult).
+
+        Returns:
+            List of parsed output_data_structure instances, one per variables_list entry, in order.
+        """
+        if not variables_list:
+            return []
+
+        if self.config.max_pending_requests and len(variables_list) > self.config.max_pending_requests:
+            raise ValueError(
+                f"Number of calls ({len(variables_list):,}) exceeds {self.config.name}'s "
+                f"{self.config.max_pending_requests:,} request limit"
+            )
+
+        structured_llm = self.model.with_structured_output(output_data_structure)
+        chain = prompt_template | structured_llm
+
+        # Render each prompt for token counting, keep the variables for chain.abatch
+        rendered_strings = []
+        for variables in variables_list:
+            messages = prompt_template.format_messages(**variables)
+            rendered_strings.append(self._render_chat_messages_to_string(messages))
+
+        # Use existing batching logic on the rendered strings to determine batch boundaries
+        batches_of_strings = self.split_prompts_into_batches(rendered_strings)
+        logger.info(f"Processing {len(variables_list):,} chat calls in {len(batches_of_strings)} batches for {self.config.name} API")
+
+        # Map string batches back to variable batches (same sizes, same order)
+        batches_of_variables: List[List[dict]] = []
+        offset = 0
+        for batch_strings in batches_of_strings:
+            batch_size = len(batch_strings)
+            batches_of_variables.append(variables_list[offset:offset + batch_size])
+            offset += batch_size
+
+        outputs: List[Any] = []
+        for i, batch_vars in enumerate(batches_of_variables):
+            logger.info(f"Processing batch {i+1}/{len(batches_of_variables)} with {len(batch_vars)} requests ({self.config.name})")
+
+            max_retries = 3 if self.provider_type in [ProviderType.MISTRAL, ProviderType.CLAUDE] else 2
+            base_sleep = self.sleep_time
+
+            for attempt in range(max_retries + 1):
+                try:
+                    batch_outputs = await chain.abatch(batch_vars)
+                    outputs.extend(batch_outputs)
+                    break
+                except openai.RateLimitError as e:
+                    if attempt == max_retries:
+                        logger.error(f"Rate limit retry failed for batch {i+1} after {max_retries} attempts: {e}")
+                        raise
+                    sleep_time = base_sleep * (2 ** attempt)
+                    if self.provider_type == ProviderType.MISTRAL:
+                        sleep_time *= 2
+                    logger.warning(f"RateLimitError in batch {i+1}, attempt {attempt+1}/{max_retries+1}: {e}")
+                    time.sleep(sleep_time)
+                except openai.BadRequestError as e:
+                    if attempt == max_retries:
+                        logger.error(f"BadRequest retry failed for batch {i+1} after {max_retries} attempts: {e}")
+                        raise
+                    logger.error(f"BadRequestError in batch {i+1}, attempt {attempt+1}/{max_retries+1}: {e}")
+                    time.sleep(base_sleep)
+                except Exception as e:
+                    if attempt == max_retries:
+                        logger.error(f"Final retry failed for batch {i+1} after {max_retries} attempts: {e}")
+                        raise
+                    sleep_time = base_sleep * (2 ** attempt)
+                    logger.warning(f"Error in batch {i+1}, attempt {attempt+1}/{max_retries+1}: {e}")
+                    time.sleep(sleep_time)
+
+            if i < len(batches_of_variables) - 1 and self.config.sleep_between_batches > 0:
+                logger.info(f"Sleeping {self.config.sleep_between_batches}s between batches for {self.config.name}")
+                time.sleep(self.config.sleep_between_batches)
+
+        logger.info(f"Successfully processed all {len(outputs):,} chat calls for {self.config.name}")
+        return outputs
+
     async def extract_information_as_json_for_context(self,
                                                       output_data_structure,
                                                       contexts: List[str],
@@ -239,7 +344,8 @@ class LangchainOutputParser(LLMOutputParserInterface):
                                                     # DIRECTIVES :
                                                     - Act like an experienced information extractor.
                                                     - If you do not find the right information, keep its place empty.
-                                                    ''') -> List[Any]:
+                                                    ''',
+                                                      return_exceptions: bool = False) -> List[Any]:
         """
         Prepares prompts for each context, calculates token counts, splits the prompts into batches
         that respect provider-specific API constraints, and processes them with appropriate error handling.
@@ -254,6 +360,9 @@ class LangchainOutputParser(LLMOutputParserInterface):
             output_data_structure: The expected output structure
             contexts: List of context strings to process
             system_query: The system query/instruction
+            return_exceptions: If True, per-item failures are returned as Exception objects
+                in the output list (forwarded to ``abatch``) instead of raising. Default False
+                preserves existing callers' behavior.
         """
         # Validate against provider limits
         if self.config.max_pending_requests and len(contexts) > self.config.max_pending_requests:
@@ -293,7 +402,9 @@ class LangchainOutputParser(LLMOutputParserInterface):
             
             for attempt in range(max_retries + 1):
                 try:
-                    batch_outputs = await structured_llm.abatch(batch)
+                    batch_outputs = await structured_llm.abatch(
+                        batch, return_exceptions=return_exceptions
+                    )
                     outputs.extend(batch_outputs)
                     break  # Success, exit retry loop
                     
