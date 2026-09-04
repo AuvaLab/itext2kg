@@ -17,6 +17,7 @@ LABEL_PATTERN = re.compile(r'[^a-zA-Z0-9]+')  # For cleaning labels
 class RelationshipProperties(BaseModelWithConfig):
     embeddings:   Optional[np.ndarray]  = None
     atomic_facts:       List[str]         = []
+    domains:    List[str] = []
     t_obs:   List[float] = []
     t_start:      List[float] = []
     t_end:    List[float] = []
@@ -74,6 +75,10 @@ class Relationship(BaseModelWithConfig):
     def combine_atomic_facts(self, atomic_facts: List[str]) -> None:
         """Combines atomic facts by appending the new atomic fact if it's different from existing ones."""
         self.properties.atomic_facts.extend(atomic_facts)
+
+    def combine_domains(self, domains: List[str]) -> None:
+        """Combines domains by appending the new domain values."""
+        self.properties.domains.extend(domains)
             
     def __eq__(self, other) -> bool:
         """Checks equality without considering timestamps."""

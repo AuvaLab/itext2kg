@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Callable, List, Union, Optional, Awaitable
 from pydantic import BaseModel, Field, ConfigDict
+from collections import defaultdict, deque
 from itext2kg.atom.models.entity import Entity, EntityProperties
 from itext2kg.atom.models.relationship import Relationship, RelationshipProperties
 
@@ -77,10 +78,74 @@ class KnowledgeGraph(BaseModelWithConfig):
             for rel in self.relationships:
                 rel.combine_atomic_facts(atomic_facts)
 
+    def add_domains_to_relationships(self, domains: List[str]) -> None:
+        """Adds domains to relationships."""
+        if self.relationships:
+            for rel in self.relationships:
+                rel.combine_domains(domains)
+
     def find_isolated_entities(self) -> List[Entity]:
         related_entities = set(r.startEntity for r in self.relationships) | \
                            set(r.endEntity   for r in self.relationships)
         return [ent for ent in self.entities if ent not in related_entities]
+
+    def extract_connecting_subgraph(self, triple_indices: List[int]) -> List[int]:
+        """
+        Returns the smallest set of relationship indices that connect all entities
+        appearing in the given triples. Uses BFS shortest paths between entity pairs.
+
+        Args:
+            triple_indices: Indices of relationships (e.g. rare triples).
+
+        Returns:
+            Deduplicated list of relationship indices (rare triples + bridging edges).
+        """
+        if not self.relationships or not triple_indices:
+            return list(set(triple_indices))
+
+        # Entity-level adjacency: entity_name -> [(neighbor_entity_name, rel_index)]
+        adj: dict = defaultdict(list)
+        for idx, rel in enumerate(self.relationships):
+            s, o = rel.startEntity.name, rel.endEntity.name
+            adj[s].append((o, idx))
+            adj[o].append((s, idx))
+
+        # Entities that appear in the given triples
+        seed_entities = set()
+        for idx in triple_indices:
+            if 0 <= idx < len(self.relationships):
+                rel = self.relationships[idx]
+                seed_entities.add(rel.startEntity.name)
+                seed_entities.add(rel.endEntity.name)
+        seed_list = sorted(seed_entities)
+
+        result = set(triple_indices)
+        # BFS between each pair of seed entities to get shortest path (as rel indices)
+        for i in range(len(seed_list)):
+            for j in range(i + 1, len(seed_list)):
+                start, end = seed_list[i], seed_list[j]
+                path_rels = self._bfs_entity_path(adj, start, end)
+                result.update(path_rels)
+        return sorted(result)
+
+    @staticmethod
+    def _bfs_entity_path(adj: dict, start: str, end: str) -> List[int]:
+        """BFS from start to end on entity graph; returns list of relationship indices on path."""
+        if start == end:
+            return []
+        if start not in adj or end not in adj:
+            return []
+        seen = {start}
+        queue = deque([(start, [])])
+        while queue:
+            entity, path_rel_indices = queue.popleft()
+            for neighbor, rel_idx in adj[entity]:
+                if neighbor == end:
+                    return path_rel_indices + [rel_idx]
+                if neighbor not in seen:
+                    seen.add(neighbor)
+                    queue.append((neighbor, path_rel_indices + [rel_idx]))
+        return []
 
     
     def split_into_atomic_kgs(self) -> List['KnowledgeGraph']:
@@ -181,16 +246,20 @@ class KnowledgeGraph(BaseModelWithConfig):
                         except:
                             embeddings = None
                 
-                # Handle list properties (atomic_facts, t_obs, t_start, t_end)
-                atomic_facts = rel_properties.pop("atomic_facts", [])
-                t_obs = rel_properties.pop("t_obs", [])
-                t_start = rel_properties.pop("t_start", [])
-                t_end = rel_properties.pop("t_end", [])
+                # Handle list properties with support for multiple naming conventions
+                # Check for both old names (sources, timestamps, t_valid, t_invalid) 
+                # and new names (atomic_facts, t_obs, t_start, t_end)
+                atomic_facts = rel_properties.pop("sources", rel_properties.pop("atomic_facts", []))
+                domains = rel_properties.pop("domains", [])
+                t_obs = rel_properties.pop("timestamps", rel_properties.pop("t_obs", []))
+                t_start = rel_properties.pop("t_valid", rel_properties.pop("t_start", []))
+                t_end = rel_properties.pop("t_invalid", rel_properties.pop("t_end", []))
                 
                 # Create RelationshipProperties
                 rel_props = RelationshipProperties(
                     embeddings=embeddings if embeddings is not None else None,
                     atomic_facts=atomic_facts if isinstance(atomic_facts, list) else [],
+                    domains=domains if isinstance(domains, list) else [],
                     t_obs=t_obs if isinstance(t_obs, list) else [],
                     t_start=t_start if isinstance(t_start, list) else [],
                     t_end=t_end if isinstance(t_end, list) else []
@@ -207,6 +276,180 @@ class KnowledgeGraph(BaseModelWithConfig):
                 relationships.append(relationship)
         
         return KnowledgeGraph(entities=entities, relationships=relationships)
+
+
+    def to_json(self, path, embeddings_path=None) -> None:
+        """Persist graph structure as JSON; optionally write embeddings to an NPZ sidecar.
+
+        Embeddings are excluded from the JSON payload. When ``embeddings_path`` is
+        given, entity and relationship embedding vectors are stored as float32
+        arrays aligned by index with the JSON entity/relationship lists.
+        """
+        from pathlib import Path
+        import json
+
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        entities_payload = []
+        entity_embeddings = []
+        for e in self.entities:
+            entities_payload.append({"name": e.name, "label": e.label})
+            emb = e.properties.embeddings
+            entity_embeddings.append(
+                None if emb is None else np.asarray(emb, dtype=np.float32)
+            )
+
+        relationships_payload = []
+        relationship_embeddings = []
+        for rel in self.relationships:
+            props = rel.properties
+            relationships_payload.append(
+                {
+                    "name": rel.name,
+                    "startEntity": {
+                        "name": rel.startEntity.name,
+                        "label": rel.startEntity.label,
+                    },
+                    "endEntity": {
+                        "name": rel.endEntity.name,
+                        "label": rel.endEntity.label,
+                    },
+                    "properties": {
+                        "atomic_facts": list(props.atomic_facts or []),
+                        "domains": list(getattr(props, "domains", None) or []),
+                        "t_obs": list(props.t_obs or []),
+                        "t_start": list(props.t_start or []),
+                        "t_end": list(props.t_end or []),
+                    },
+                }
+            )
+            emb = props.embeddings
+            relationship_embeddings.append(
+                None if emb is None else np.asarray(emb, dtype=np.float32)
+            )
+
+        payload = {
+            "schema_version": 1,
+            "entities": entities_payload,
+            "relationships": relationships_payload,
+        }
+        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+        if embeddings_path is not None:
+            embeddings_path = Path(embeddings_path)
+            embeddings_path.parent.mkdir(parents=True, exist_ok=True)
+            e_mask = np.array(
+                [emb is not None for emb in entity_embeddings], dtype=bool
+            )
+            r_mask = np.array(
+                [emb is not None for emb in relationship_embeddings], dtype=bool
+            )
+            if e_mask.any():
+                dim = next(emb.shape[0] for emb in entity_embeddings if emb is not None)
+                e_mat = np.zeros((len(entity_embeddings), dim), dtype=np.float32)
+                for i, emb in enumerate(entity_embeddings):
+                    if emb is not None:
+                        e_mat[i] = emb
+            else:
+                e_mat = np.zeros((len(entity_embeddings), 0), dtype=np.float32)
+            if r_mask.any():
+                dim = next(
+                    emb.shape[0] for emb in relationship_embeddings if emb is not None
+                )
+                r_mat = np.zeros((len(relationship_embeddings), dim), dtype=np.float32)
+                for i, emb in enumerate(relationship_embeddings):
+                    if emb is not None:
+                        r_mat[i] = emb
+            else:
+                r_mat = np.zeros((len(relationship_embeddings), 0), dtype=np.float32)
+            np.savez_compressed(
+                embeddings_path,
+                entity_embeddings=e_mat,
+                relationship_embeddings=r_mat,
+                entity_mask=e_mask,
+                relationship_mask=r_mask,
+            )
+
+    @classmethod
+    def from_json(cls, path, embeddings_path=None):
+        """Load a KnowledgeGraph (or subclass) from JSON, optionally reattaching NPZ embeddings."""
+        from pathlib import Path
+        import json
+
+        path = Path(path)
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if int(data.get("schema_version", 1)) != 1:
+            raise ValueError(
+                f"Unsupported KnowledgeGraph schema_version: {data.get('schema_version')}"
+            )
+
+        from typing import get_args, get_origin
+
+        rel_field = cls.model_fields.get("relationships")
+        rel_cls = Relationship
+        if rel_field is not None:
+            ann = rel_field.annotation
+            args = get_args(ann)
+            if args:
+                rel_cls = args[0]
+        props_field = getattr(rel_cls, "model_fields", {}).get("properties")
+        props_cls = RelationshipProperties
+        if props_field is not None:
+            props_cls = props_field.annotation
+
+        entities = [
+            Entity(name=e["name"], label=e.get("label", ""))
+            for e in data.get("entities", [])
+        ]
+        entity_map = {(e.name, e.label): e for e in entities}
+
+        relationships = []
+        for rel in data.get("relationships", []):
+            start_key = (rel["startEntity"]["name"], rel["startEntity"].get("label", ""))
+            end_key = (rel["endEntity"]["name"], rel["endEntity"].get("label", ""))
+            start = entity_map.get(start_key)
+            end = entity_map.get(end_key)
+            if start is None:
+                start = Entity(name=start_key[0], label=start_key[1])
+                entities.append(start)
+                entity_map[start_key] = start
+            if end is None:
+                end = Entity(name=end_key[0], label=end_key[1])
+                entities.append(end)
+                entity_map[end_key] = end
+            props_data = dict(rel.get("properties") or {})
+            props_data.pop("embeddings", None)
+            relationships.append(
+                rel_cls(
+                    name=rel.get("name", ""),
+                    startEntity=start,
+                    endEntity=end,
+                    properties=props_cls(**props_data),
+                )
+            )
+
+        kg = cls(entities=entities, relationships=relationships)
+
+        if embeddings_path is not None:
+            embeddings_path = Path(embeddings_path)
+            if embeddings_path.exists():
+                with np.load(embeddings_path) as arrays:
+                    e_mat = arrays["entity_embeddings"]
+                    r_mat = arrays["relationship_embeddings"]
+                    e_mask = arrays["entity_mask"]
+                    r_mask = arrays["relationship_mask"]
+                for i, entity in enumerate(kg.entities):
+                    if i < len(e_mask) and e_mask[i]:
+                        entity.properties.embeddings = np.asarray(
+                            e_mat[i], dtype=np.float32
+                        )
+                for i, rel in enumerate(kg.relationships):
+                    if i < len(r_mask) and r_mask[i]:
+                        rel.properties.embeddings = np.asarray(
+                            r_mat[i], dtype=np.float32
+                        )
+        return kg
 
     def __repr__(self) -> str:
         return (f"KnowledgeGraph("
