@@ -1,6 +1,6 @@
 from neo4j import GraphDatabase
 import numpy as np
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from itext2kg.atom.models import KnowledgeGraph
 from itext2kg.graph_integration.storage_interface import GraphStorageInterface
 from itext2kg.logging_config import get_logger
@@ -245,24 +245,143 @@ class Neo4jStorage(GraphStorageInterface):
             
         return rels
 
+    @staticmethod
+    def _serialize_properties(raw_properties: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize model_dump properties for Neo4j driver parameter binding."""
+        properties: Dict[str, Any] = {}
+        for prop, value in raw_properties.items():
+            prop_key = prop.replace(" ", "_")
+            if prop == "embeddings":
+                if value is not None:
+                    properties[prop_key] = Neo4jStorage.transform_embeddings_to_str_list(value)
+                else:
+                    properties[prop_key] = ""
+            else:
+                # Lists and scalars are passed as-is; the Neo4j driver handles them.
+                properties[prop_key] = value
+        return properties
+
+    def _prepare_batched_nodes(self, knowledge_graph: KnowledgeGraph) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Prepares batched node data grouped by label for efficient UNWIND queries.
+        
+        Args:
+            knowledge_graph (KnowledgeGraph): The KnowledgeGraph object containing entities.
+            
+        Returns:
+            dict: Dictionary mapping sanitized labels to lists of node data dictionaries.
+        """
+        nodes_by_label: Dict[str, List[Dict[str, Any]]] = {}
+        
+        for entity in knowledge_graph.entities:
+            sanitized_label = Neo4jStorage.sanitize_label(entity.label)
+            node_data = {
+                "name": entity.name,
+                "properties": Neo4jStorage._serialize_properties(entity.properties.model_dump()),
+            }
+            
+            if sanitized_label not in nodes_by_label:
+                nodes_by_label[sanitized_label] = []
+            nodes_by_label[sanitized_label].append(node_data)
+        
+        return nodes_by_label
+    
+    def _prepare_batched_relationships(self, knowledge_graph: KnowledgeGraph) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Prepares batched relationship data grouped by relationship type for efficient UNWIND queries.
+        
+        Args:
+            knowledge_graph (KnowledgeGraph): The KnowledgeGraph object containing relationships.
+            
+        Returns:
+            dict: Dictionary mapping sanitized relationship types to lists of relationship data dictionaries.
+        """
+        rels_by_type: Dict[str, List[Dict[str, Any]]] = {}
+        
+        for rel in knowledge_graph.relationships:
+            sanitized_rel_type = Neo4jStorage.sanitize_relationship_type(rel.name)
+            rel_data = {
+                "startLabel": Neo4jStorage.sanitize_label(rel.startEntity.label),
+                "startName": rel.startEntity.name,
+                "endLabel": Neo4jStorage.sanitize_label(rel.endEntity.label),
+                "endName": rel.endEntity.name,
+                "properties": Neo4jStorage._serialize_properties(rel.properties.model_dump()),
+            }
+            
+            if sanitized_rel_type not in rels_by_type:
+                rels_by_type[sanitized_rel_type] = []
+            rels_by_type[sanitized_rel_type].append(rel_data)
+        
+        return rels_by_type
 
     def visualize_graph(self, knowledge_graph: KnowledgeGraph, parent_node_type: str = "Hadith") -> None:
         """
         Runs the necessary queries to visualize a graph structure from a KnowledgeGraph input.
-        Also creates HAS_ENTITY relationships between existing nodes and knowledge graph entities.
+        Uses batched UNWIND queries for efficient bulk writes inside a single transaction.
         
         Args:
             knowledge_graph (KnowledgeGraph): The KnowledgeGraph object containing the graph structure.
-            parent_node_type (str): The type of parent nodes to create HAS_ENTITY relationships with.
+            parent_node_type (str): Unused; kept for API compatibility.
         """
-        nodes = self.create_nodes(knowledge_graph=knowledge_graph)
-        relationships = self.create_relationships(knowledge_graph=knowledge_graph)
+        nodes_by_label = self._prepare_batched_nodes(knowledge_graph)
+        rels_by_type = self._prepare_batched_relationships(knowledge_graph)
         
-        for node_query in nodes:
-            self.run_query(node_query)
-
-        for rel_query in relationships:
-            self.run_query(rel_query)
+        total_nodes = sum(len(nodes) for nodes in nodes_by_label.values())
+        total_rels = sum(len(rels) for rels in rels_by_type.values())
+        
+        logger.info(
+            "Preparing to write %s nodes and %s relationships using batched queries",
+            total_nodes,
+            total_rels,
+        )
+        
+        with self.driver.session(database=self.database) as session:
+            with session.begin_transaction() as tx:
+                try:
+                    for label, nodes in nodes_by_label.items():
+                        query = f"""
+                        UNWIND $nodes AS node
+                        MERGE (n:{label} {{name: node.name}})
+                        SET n += node.properties
+                        """
+                        tx.run(query, nodes=nodes)
+                        logger.debug("Created %s nodes with label %s", len(nodes), label)
+                    
+                    # Labels/types must be static in Cypher, so regroup by combo.
+                    rels_by_combo: Dict[Tuple[str, str, str], List[Dict[str, Any]]] = {}
+                    for rel_type, rels in rels_by_type.items():
+                        for rel in rels:
+                            combo_key = (rel["startLabel"], rel["endLabel"], rel_type)
+                            if combo_key not in rels_by_combo:
+                                rels_by_combo[combo_key] = []
+                            rels_by_combo[combo_key].append(rel)
+                    
+                    for (start_label, end_label, rel_type), rels_group in rels_by_combo.items():
+                        query = f"""
+                        UNWIND $relationships AS rel
+                        MATCH (start:{start_label} {{name: rel.startName}})
+                        MATCH (end:{end_label} {{name: rel.endName}})
+                        MERGE (start)-[r:{rel_type}]->(end)
+                        SET r += rel.properties
+                        """
+                        tx.run(query, relationships=rels_group)
+                        logger.debug(
+                            "Created %s relationships of type %s between %s and %s",
+                            len(rels_group),
+                            rel_type,
+                            start_label,
+                            end_label,
+                        )
+                    
+                    tx.commit()
+                    logger.info(
+                        "Successfully wrote %s nodes and %s relationships to Neo4j using batched queries",
+                        total_nodes,
+                        total_rels,
+                    )
+                except Exception as e:
+                    logger.error("Error writing to Neo4j, transaction rolled back: %s", e)
+                    raise
 
     @staticmethod
     def sanitize_label(label: str) -> str:
