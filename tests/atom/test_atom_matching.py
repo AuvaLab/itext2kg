@@ -40,9 +40,15 @@ except ImportError:
 
 # Import the atom modules (we'll handle import errors gracefully)
 try:
-    from atom.models import Entity, Relationship, KnowledgeGraph, EntityProperties, RelationshipProperties
-    from atom.graph_matching import GraphMatcher
-    from atom.atom import Atom
+    from itext2kg.atom.models import (
+        Entity,
+        Relationship,
+        KnowledgeGraph,
+        EntityProperties,
+        RelationshipProperties,
+    )
+    from itext2kg.atom.graph_matching import GraphMatcher
+    from itext2kg.atom.atom import Atom
     HAS_ATOM_MODULES = True
 except ImportError as e:
     print(f"Warning: Could not import atom modules: {e}")
@@ -188,6 +194,13 @@ class TestAtomMatching(unittest.TestCase):
         self.google = Entity(name="Google", label="company")
         self.apple = Entity(name="Apple", label="company")
         self.xai = Entity(name="XAI", label="company")
+        self._embed_entities(
+            self.john_doe,
+            self.jane_smith,
+            self.google,
+            self.apple,
+            self.xai,
+        )
         
         # Create test atomic facts based on the user's timeline
         self.atomic_facts_timeline = [
@@ -214,6 +227,43 @@ class TestAtomMatching(unittest.TestCase):
             }
         ]
         
+    @staticmethod
+    def _orthonormal_map(keys: tuple) -> dict:
+        dim = len(keys)
+        return {key: np.eye(dim, dtype=float)[i] for i, key in enumerate(keys)}
+
+    @classmethod
+    def _embed_entities(cls, *entities: Entity) -> None:
+        keys = tuple((entity.name, entity.label) for entity in entities)
+        basis = cls._orthonormal_map(keys)
+        for entity in entities:
+            entity.properties.embeddings = basis[(entity.name, entity.label)]
+
+    @classmethod
+    def _embed_relationships(cls, *relationships: Relationship) -> None:
+        """Orthogonal embeddings: only structurally identical edges match."""
+        keys = tuple(
+            (
+                rel.name,
+                rel.startEntity.name,
+                rel.startEntity.label,
+                rel.endEntity.name,
+                rel.endEntity.label,
+            )
+            for rel in relationships
+        )
+        unique_keys = tuple(dict.fromkeys(keys))
+        basis = cls._orthonormal_map(unique_keys)
+        for rel in relationships:
+            key = (
+                rel.name,
+                rel.startEntity.name,
+                rel.startEntity.label,
+                rel.endEntity.name,
+                rel.endEntity.label,
+            )
+            rel.properties.embeddings = basis[key]
+
     def test_entity_exact_matching(self):
         """Test that entities with same name and label are matched exactly."""
         # Create two lists with the same entities
@@ -332,6 +382,7 @@ class TestAtomMatching(unittest.TestCase):
         
         rels1 = [rel1]
         rels2 = [rel2]
+        self._embed_relationships(rel1, rel2)
         
         # Test relationship matching
         updated_rels1, combined_rels = self.matcher._batch_match_relationships(
@@ -408,6 +459,12 @@ class TestAtomMatching(unittest.TestCase):
         kg2 = KnowledgeGraph(
             entities=[self.john_doe, self.jane_smith, self.google, self.apple],
             relationships=[john_google_rel2, jane_apple_rel2]
+        )
+        self._embed_relationships(
+            john_google_rel,
+            jane_apple_rel,
+            john_google_rel2,
+            jane_apple_rel2,
         )
         
         # Mock the Atom instance
@@ -517,6 +574,14 @@ class TestAtomMatching(unittest.TestCase):
             relationships=[john_xai_ceo, john_xai_ceo_end]
         )
         kgs.append(kg3)
+        self._embed_relationships(
+            john_google,
+            jane_apple,
+            john_google2,
+            jane_apple2,
+            john_xai_ceo,
+            john_xai_ceo_end,
+        )
         
         # Mock the Atom instance
         atom = Atom(self.mock_llm, self.mock_embeddings)
